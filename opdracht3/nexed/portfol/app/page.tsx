@@ -9,7 +9,7 @@ export default function Home() {
         <img
           src="/landingpagebg.png"
           alt="Landing background"
-          className="w-full h-full object-cover object-bottom block"
+          className="w-full h-full object-cover object-[center_70%] block"
         />
       </main>
     </div>
