@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 const Navbar = () => {
   return (
@@ -8,8 +9,14 @@ const Navbar = () => {
           <a href="#" className="hover:opacity-70">Explore</a>
           <a href="#" className="hover:opacity-70">Your projects</a>
         </div>
-        <div className="text-2xl font-extrabold tracking-tight text-black select-none">
-          current
+        <div className="select-none">
+          <Image
+            src="/logo1portfol.png"
+            alt="Portfol logo"
+            width={140}
+            height={40}
+            priority
+          />
         </div>
         <div className="flex items-center gap-6 text-sm font-medium">
           <a href="#" className="text-black hover:opacity-70">About</a>
