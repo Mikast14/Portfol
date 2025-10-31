@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* brand colors */
+  --color-primary: #171717;
+  --color-secondary: #ffffff;
+  --color-accent: #F355A7;
+  --color-primary-hover: #CA227D;
+  --color-secondary-hover: #F355A7;
+
+  --color-concrete-grey: #D7D7D7;
+  --color-tarmac-black: #1D2020;
+  --color-basketball-red: #D74A23;
+  --color-tour-yellow: #F3B831;
+  --color-beachball-beige: #E5DCC2;
+  --color-marathon-blue: #0566DD;
+  --color-olympic-blue: #5DCBF1;
+  --color-stuntpark-grey: #7A9BA6;
+  
+
+  /* radius */
+  --radius-none: 0px;
+  --radius-soft: 2px;
+  --radius-base: 4px;
+  --radius-rounded: 8px;
+  --radius-large: 16px;
+  --radius-pill: 9999px;
+
+  /* shadow */
+  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.2);
+
+  /* breakpoints */
+  --breakpoint-2xsmall: 320px;
+  --breakpoint-xsmall: 512px;
+  --breakpoint-small: 1024px;
+  --breakpoint-medium: 1280px;
+  --breakpoint-large: 1440px;
+  --breakpoint-xlarge: 1680px;
+  --breakpoint-2xlarge: 1920px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
