@@ -15,6 +15,7 @@ const Navbar = () => {
             alt="Portfol logo"
             width={140}
             height={40}
+            className="h-10 w-auto shrink-0"
             priority
           />
         </div>
