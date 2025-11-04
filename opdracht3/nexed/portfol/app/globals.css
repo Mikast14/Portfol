@@ -16,7 +16,7 @@
   --color-secondary: #ffffff;
   --color-accent: #F355A7;
   --color-primary-hover: #CA227D;
-  --color-secondary-hover: #F355A7;
+  --color-secondary-hover: #6E6E6E;
 
   --color-concrete-grey: #D7D7D7;
   --color-tarmac-black: #1D2020;
@@ -61,3 +61,4 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
