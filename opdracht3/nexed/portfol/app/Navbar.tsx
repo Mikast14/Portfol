@@ -66,10 +66,10 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-          <a href="#" className="bg-primary text-white rounded-full px-5 py-2 hover:bg-secondary-hover transition whitespace-nowrap">
+          <a href="/login" className="bg-primary text-white rounded-full px-5 py-2 hover:bg-secondary-hover transition whitespace-nowrap">
             Login
           </a>
-          <a href="#" className="bg-accent text-white rounded-full px-5 py-2 hover:bg-primary-hover transition whitespace-nowrap">
+          <a href="/login/registration" className="bg-accent text-white rounded-full px-5 py-2 hover:bg-primary-hover transition whitespace-nowrap">
             Get started
           </a>
           </div>
