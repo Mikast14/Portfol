@@ -1,6 +1,57 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../../Navbar";
 
 export default function RegistrationPage() {
+    const router = useRouter();
+    const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        setError(null);
+        setSuccess(null);
+        if (!acceptedTerms) {
+            setError("Je moet akkoord gaan met de voorwaarden");
+            return;
+        }
+        if (password !== confirmPassword) {
+            setError("Wachtwoorden komen niet overeen");
+            return;
+        }
+        if (password.length < 8) {
+            setError("Wachtwoord moet minimaal 8 tekens lang zijn");
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password, fullName }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                throw new Error(data?.error || "Registratie mislukt");
+            }
+            setSuccess("Account is aangemaakt. Je wordt doorgestuurd naar inloggen...");
+            setTimeout(() => router.push("/login"), 1000);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Er ging iets mis";
+            setError(message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <div className="min-h-screen font-sans bg-background">
             <Navbar />
@@ -11,7 +62,7 @@ export default function RegistrationPage() {
                         <h1 className="text-3xl font-bold mb-2 text-foreground text-center">Registreren</h1>
                         <p className="text-gray-600 text-center mb-8">Maak een nieuw account aan om verder te gaan.</p>
 
-                        <form action="#" method="post" noValidate className="space-y-6">
+                        <form noValidate className="space-y-6" onSubmit={handleSubmit}>
                             <div>
                                 <label htmlFor="fullName" className="block text-sm font-medium text-black mb-2">Volledige naam</label>
                                 <input
@@ -22,6 +73,8 @@ export default function RegistrationPage() {
                                     placeholder="Voor- en achternaam"
                                     className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                                     required
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
                                 />
                             </div>
 
@@ -35,6 +88,8 @@ export default function RegistrationPage() {
                                     placeholder="jouw@email.com"
                                     className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                                     required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                 />
                             </div>
 
@@ -49,6 +104,8 @@ export default function RegistrationPage() {
                                     className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                                     minLength={8}
                                     required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                 />
                             </div>
 
@@ -63,19 +120,36 @@ export default function RegistrationPage() {
                                     className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                                     minLength={8}
                                     required
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
                                 />
                             </div>
 
                             <div className="flex items-center">
-                                <input id="terms" name="terms" type="checkbox" className="h-4 w-4 text-accent border-gray-300 rounded mr-2" />
+                                <input
+                                    id="terms"
+                                    name="terms"
+                                    type="checkbox"
+                                    className="h-4 w-4 text-accent border-gray-300 rounded mr-2"
+                                    checked={acceptedTerms}
+                                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                />
                                 <label htmlFor="terms" className="text-sm text-black">Ik ga akkoord met de voorwaarden</label>
                             </div>
 
+                            {error && (
+                                <p className="text-sm text-red-600">{error}</p>
+                            )}
+                            {success && (
+                                <p className="text-sm text-green-600">{success}</p>
+                            )}
+
                             <button
                                 type="submit"
-                                className="w-full bg-accent text-white rounded-full px-6 py-3 hover:bg-primary-hover transition font-medium"
+                                className="w-full bg-accent text-white rounded-full px-6 py-3 hover:bg-primary-hover transition font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                                disabled={loading}
                             >
-                                Account aanmaken
+                                {loading ? "Bezig..." : "Account aanmaken"}
                             </button>
                         </form>
 

@@ -2,7 +2,7 @@ import Navbar from "../Navbar";
 // import Projects from "./projects";
 
 export default async function Account() {
-    const name = "mikast14";
+    const name = "Danielo923";
 
     const userRes = await fetch(`https://api.github.com/users/${name}`, { next: { revalidate: 60 } });
     const user = await userRes.json();
