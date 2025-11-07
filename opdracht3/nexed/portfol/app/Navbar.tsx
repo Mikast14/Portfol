@@ -8,12 +8,12 @@ const Navbar = () => {
 
   const navLinks = [
     { label: "Explore", href: "/explore" },
-    { label: "Your projects", href: "#" },
+    { label: "Your projects", href: "/account" },
   ];
 
   return (
-    <div className="fixed top-4 left-0 w-full flex justify-center z-50">
-      <div className="w-[calc(100%-48px)] max-w-6xl bg-white rounded-full px-6 py-3 shadow-elevated grid grid-cols-[1fr_auto_1fr] items-center">
+    <div className="mt-[20px] mb-[20px] w-full flex justify-center z-50">
+      <div className="w-[calc(100%-30%)] bg-white rounded-full px-6 py-3 shadow-elevated grid grid-cols-[1fr_auto_1fr] items-center">
         <div className="flex items-center gap-8 text-sm font-medium text-black justify-self-start">
           {navLinks.map(({ label, href }) => {
             const isActive = href !== "#" && pathname === href;
