@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Navbar from "../../Navbar";
+import { useCallback, useEffect, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-
-interface GitHubRepo {
-  id: number;
-  name: string;
-  fullName: string;
-  htmlUrl: string;
-  description: string;
-}
+import Navbar from "../../Navbar";
+import BasicInfoSection from "./components/BasicInfoSection";
+import GitHubSection from "./components/GitHubSection";
+import PlatformsSection from "./components/PlatformsSection";
+import ProjectImageSection from "./components/ProjectImageSection";
+import { GitHubRepo } from "./types";
 
 export default function AddProject() {
   const router = useRouter();
@@ -18,15 +16,16 @@ export default function AddProject() {
   const [description, setDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
   const [platforms, setPlatforms] = useState<string[]>([]);
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [mainImage, setMainImage] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [githubUsername, setGithubUsername] = useState("mikast14");
 
-  // Fetch GitHub repos
   useEffect(() => {
     const fetchRepos = async () => {
       setLoadingRepos(true);
@@ -49,35 +48,100 @@ export default function AddProject() {
     fetchRepos();
   }, [githubUsername]);
 
-  // Handle platform checkbox changes
-  const handlePlatformChange = (platform: string) => {
-    if (platforms.includes(platform)) {
-      setPlatforms(platforms.filter((p) => p !== platform));
-    } else {
-      setPlatforms([...platforms, platform]);
+  const handleNameChange = useCallback((value: string) => {
+    setName(value);
+  }, []);
+
+  const handleDescriptionChange = useCallback((value: string) => {
+    setDescription(value);
+  }, []);
+
+  const handleGithubUsernameChange = useCallback((value: string) => {
+    setGithubUsername(value);
+  }, []);
+
+  const handleGithubRepoChange = useCallback((value: string) => {
+    setGithubRepo(value);
+  }, []);
+
+  const handlePlatformToggle = useCallback(
+    (platform: string) => {
+      setPlatforms((prev) =>
+        prev.includes(platform) ? prev.filter((item) => item !== platform) : [...prev, platform]
+      );
+    },
+    [setPlatforms]
+  );
+
+  const handleMainImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
     }
-  };
 
-  // Handle image file selection
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImage(file);
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setMainImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setMainImage(file);
+    input.value = "";
+  }, []);
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRemoveMainImage = useCallback(() => {
+    setMainImage(null);
+    setMainImagePreview(null);
+  }, []);
 
-    if (!name || !description || !githubRepo || platforms.length === 0) {
-      setMessage("Please fill in all required fields");
+  const handleAdditionalImagesChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const input = event.target;
+      const files = input.files;
+      if (!files || files.length === 0) {
+        return;
+      }
+
+      const maxAdditionalImages = 4;
+      const availableSlots = maxAdditionalImages - additionalImages.length;
+      if (availableSlots <= 0) {
+        input.value = "";
+        return;
+      }
+
+      const filesToAdd = Array.from(files).slice(0, availableSlots);
+
+      const previewPromises = filesToAdd.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              resolve(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+          })
+      );
+
+      Promise.all(previewPromises).then((previews) => {
+        setAdditionalImages((prev) => [...prev, ...filesToAdd]);
+        setAdditionalImagePreviews((prev) => [...prev, ...previews]);
+      });
+
+      input.value = "";
+    },
+    [additionalImages.length]
+  );
+
+  const handleRemoveAdditionalImage = useCallback((index: number) => {
+    setAdditionalImages((prev) => prev.filter((_, i) => i !== index));
+    setAdditionalImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!name || !description || !githubRepo || platforms.length === 0 || !mainImage) {
+      setMessage("Please fill in all required fields (main image is required)");
       return;
     }
 
@@ -90,9 +154,19 @@ export default function AddProject() {
       formData.append("description", description);
       formData.append("githubRepo", githubRepo);
       formData.append("platforms", platforms.join(","));
-      if (image) {
-        formData.append("image", image);
-      }
+      
+      // Add main image
+      formData.append("mainImage", mainImage);
+      console.log(`Adding mainImage to FormData:`, mainImage.name, mainImage.size, 'bytes');
+      
+      // Add additional images
+      additionalImages.forEach((image, index) => {
+        formData.append(`additionalImage_${index}`, image);
+        console.log(`Adding additionalImage_${index} to FormData:`, image.name, image.size, 'bytes');
+      });
+      formData.append("additionalImageCount", additionalImages.length.toString());
+      
+      console.log(`Sending FormData with 1 main image and ${additionalImages.length} additional images`);
 
       const response = await fetch("/api/projects", {
         method: "POST",
@@ -103,7 +177,6 @@ export default function AddProject() {
 
       if (data.ok) {
         setMessage("Project created successfully! ✅");
-        // Redirect to profile page after 1.5 seconds
         setTimeout(() => {
           router.push("/profile");
         }, 1500);
@@ -122,171 +195,113 @@ export default function AddProject() {
     <div className="min-h-screen font-sans bg-background">
       <Navbar />
       <main className="pt-24 pb-16 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-large p-8 shadow-elevated">
-            <h1 className="text-3xl font-bold mb-2 text-foreground">
-              Add New Project
-            </h1>
-            <p className="text-gray-600 mb-8">
-              Create a new project to showcase your work.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Project Name */}
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-black mb-2">
-                  Project Name *
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                  placeholder="Enter project name"
-                  disabled={loading}
-                  required
-                />
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
               </div>
-
-              {/* Description */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-black mb-2">
-                  Description *
-                </label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
-                  placeholder="Enter project description"
-                  disabled={loading}
-                  required
-                />
+                <h1 className="text-4xl font-bold text-foreground">Add New Project</h1>
+                <p className="text-gray-600 mt-1">Showcase your work and share it with the world</p>
               </div>
+            </div>
+          </div>
 
-              {/* GitHub Username (for fetching repos) */}
-              <div>
-                <label htmlFor="githubUsername" className="block text-sm font-medium text-black mb-2">
-                  GitHub Username
-                </label>
-                <input
-                  type="text"
-                  id="githubUsername"
-                  value={githubUsername}
-                  onChange={(e) => setGithubUsername(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                  placeholder="Enter GitHub username"
-                  disabled={loading}
-                />
-                {loadingRepos && (
-                  <p className="text-sm text-gray-500 mt-2">Loading repositories...</p>
-                )}
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <BasicInfoSection
+              name={name}
+              description={description}
+              loading={loading}
+              onNameChange={handleNameChange}
+              onDescriptionChange={handleDescriptionChange}
+            />
 
-              {/* GitHub Repo Dropdown */}
-              <div>
-                <label htmlFor="githubRepo" className="block text-sm font-medium text-black mb-2">
-                  GitHub Repository *
-                </label>
-                <select
-                  id="githubRepo"
-                  value={githubRepo}
-                  onChange={(e) => setGithubRepo(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-base text-black focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent bg-white"
-                  disabled={loading || loadingRepos}
-                  required
-                >
-                  <option value="">Select a repository</option>
-                  {repos.map((repo) => (
-                    <option key={repo.id} value={repo.htmlUrl}>
-                      {repo.name} {repo.description && `- ${repo.description.substring(0, 50)}${repo.description.length > 50 ? '...' : ''}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <GitHubSection
+              githubUsername={githubUsername}
+              githubRepo={githubRepo}
+              repos={repos}
+              loading={loading}
+              loadingRepos={loadingRepos}
+              onGithubUsernameChange={handleGithubUsernameChange}
+              onGithubRepoChange={handleGithubRepoChange}
+            />
 
-              {/* Platforms */}
-              <div>
-                <label className="block text-sm font-medium text-black mb-3">
-                  Platforms * (select at least one)
-                </label>
-                <div className="flex flex-wrap gap-4">
-                  {["windows", "macos", "web", "linux"].map((platform) => (
-                    <label key={platform} className="flex items-center space-x-2 cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        checked={platforms.includes(platform)}
-                        onChange={() => handlePlatformChange(platform)}
-                        disabled={loading}
-                        className="w-4 h-4 text-accent border-gray-300 rounded-base focus:ring-2 focus:ring-accent cursor-pointer disabled:cursor-not-allowed"
-                      />
-                      <span className="text-sm text-black capitalize group-hover:text-accent transition-colors">
-                        {platform === "macos" ? "macOS" : platform}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+            <PlatformsSection
+              platforms={platforms}
+              loading={loading}
+              onTogglePlatform={handlePlatformToggle}
+            />
 
-              {/* Image Upload */}
-              <div>
-                <label htmlFor="image" className="block text-sm font-medium text-black mb-2">
-                  Project Image
-                </label>
-                <input
-                  type="file"
-                  id="image"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  disabled={loading}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-base text-black focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-base file:border-0 file:text-sm file:font-medium file:bg-accent file:text-white hover:file:bg-primary-hover file:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                {imagePreview && (
-                  <div className="mt-4">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="max-w-xs h-48 object-cover rounded-base border border-gray-300"
-                    />
-                  </div>
-                )}
-              </div>
+            <ProjectImageSection
+              mainImagePreview={mainImagePreview}
+              additionalImagePreviews={additionalImagePreviews}
+              loading={loading}
+              onMainImageChange={handleMainImageChange}
+              onAdditionalImagesChange={handleAdditionalImagesChange}
+              onRemoveMainImage={handleRemoveMainImage}
+              onRemoveAdditionalImage={handleRemoveAdditionalImage}
+            />
 
-              {/* Message Display */}
-              {message && (
+            {message && (
+              <div
+                className={`p-4 rounded-base border-2 flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 ${
+                  message.includes("✅") || message.includes("success")
+                    ? "bg-green-50 text-green-800 border-green-200"
+                    : "bg-red-50 text-red-800 border-red-200"
+                }`}
+              >
                 <div
-                  className={`p-4 rounded-base ${
-                    message.includes("✅") || message.includes("success")
-                      ? "bg-green-50 text-green-800"
-                      : "bg-red-50 text-red-800"
+                  className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                    message.includes("✅") || message.includes("success") ? "bg-green-500" : "bg-red-500"
                   }`}
                 >
-                  {message}
+                  {message.includes("✅") || message.includes("success") ? (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
                 </div>
-              )}
-
-              {/* Submit Button */}
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-accent text-white rounded-full px-6 py-3 hover:bg-primary-hover transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
-                  {loading ? "Creating..." : "Create Project"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push("/profile")}
-                  disabled={loading}
-                  className="bg-gray-200 text-black rounded-full px-6 py-3 hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
-                  Cancel
-                </button>
+                <p className="text-sm font-medium">{message}</p>
               </div>
-            </form>
-          </div>
+            )}
+
+            <div className="flex gap-4 pt-2">
+              <button
+                type="submit"
+                disabled={loading || platforms.length === 0 || !mainImage}
+                className="flex-1 bg-accent text-white rounded-full px-8 py-4 hover:bg-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Creating Project...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Create Project</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/profile")}
+                disabled={loading}
+                className="px-8 py-4 bg-gray-100 text-black rounded-full hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       </main>
     </div>
