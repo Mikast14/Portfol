@@ -1,0 +1,337 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useParams } from "next/navigation";
+import Navbar from "../../../Navbar";
+import Link from "next/link";
+import Image from "next/image";
+
+interface Project {
+  _id: string;
+  name: string;
+  description: string;
+  githubRepo: string;
+  platforms: string[];
+  image?: string;
+  images?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+const platformIcons: Record<string, JSX.Element> = {
+  windows: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 12V6.75l6-1.32v6.48L3 12zm17-9v8.75l-10 .15V5.21L20 3zM3 13l6 .09v6.81l-6-1.15V13zm17 .25V22l-10-1.8v-7.45l10 .15z" />
+    </svg>
+  ),
+  macos: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+    </svg>
+  ),
+  web: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  ),
+  linux: (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 0 0-.11.135c-.26.204-.45.462-.663.773-.722 1.077-1.262 2.137-1.262 3.647 0 3.343 3.392 5.76 8.527 5.76 5.036 0 8.614-2.358 8.614-5.726 0-1.41-.45-2.468-1.192-3.533a3.76 3.76 0 0 0-.663-.792.416.416 0 0 0-.134-.09c.152-.741.06-1.539-.189-2.306-.603-1.678-1.876-3.296-2.732-4.431-.765-1.002-1.083-1.822-1.175-2.863-.065-1.415.505-5.001-3.357-6.298A3.022 3.022 0 0 0 12.504 0zm-.002 1.111c.104 0 .21.003.318.008 2.617.206 2.193 2.96 2.259 3.999.061.968.303 1.58.774 2.216.69.94 1.586 2.1 2.127 3.636.256.736.36 1.509.28 2.25-.04.37-.12.72-.22 1.04-.08.25-.17.48-.27.7-.1.22-.2.43-.31.63-.11.2-.22.38-.33.56-.11.18-.22.35-.33.51-.11.16-.21.31-.31.45-.1.14-.19.27-.27.39-.08.12-.15.23-.21.33-.06.1-.11.18-.15.25-.04.07-.07.12-.09.16-.02.04-.03.06-.03.07 0 .01.01.03.03.07.02.04.05.09.09.16.04.07.09.15.15.25.06.1.13.21.21.33.08.12.17.25.27.39.1.14.2.29.31.45.11.16.22.33.33.51.11.18.22.36.33.56.11.2.21.41.31.63.1.22.19.45.27.7.1.32.18.67.22 1.04.08.74-.02 1.51-.28 2.25-.54 1.54-1.437 2.7-2.127 3.636-.471.636-.713 1.248-.774 2.216-.066 1.039-.358 3.793-2.26 3.999a3.02 3.02 0 0 1-.316.008c-.104 0-.21-.003-.318-.008-2.617-.206-2.193-2.96-2.259-3.999-.061-.968-.303-1.58-.774-2.216-.69-.94-1.586-2.1-2.127-3.636-.256-.736-.36-1.509-.28-2.25.04-.37.12-.72.22-1.04.08-.25.17-.48.27-.7.1-.22.2-.43.31-.63.11-.2.22-.38.33-.56.11.18.22.35.33.51.11.16.21.31.31.45.1.14.19.27.27.39.08.12.15.23.21.33.06.1.11.18.15.25.04.07.07.12.09.16.02.04.03.06.03.07 0 .01-.01.03-.03.07-.02.04-.05.09-.09.16-.04.07-.09.15-.15.25-.06.1-.13.21-.21.33-.08.12-.17.25-.27.39-.1.14-.2.29-.31.45-.11.16-.22.33-.33.51-.11.18-.22.36-.33.56-.11.2-.21.41-.31.63-.1.22-.19.45-.27.7-.1.32-.18.67-.22 1.04-.08.74.02-1.51.28-2.25.54-1.54 1.437-2.7 2.127-3.636.471-.636.713-1.248.774-2.216.066-1.039.358-3.793 2.26-3.999a3.02 3.02 0 0 1 .316-.008z" />
+    </svg>
+  ),
+};
+
+export default function ProjectDetail() {
+  const params = useParams();
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const thumbnailScrollRef = useRef<HTMLDivElement>(null);
+
+  // Create array of images - use images array if available, otherwise fall back to single image
+  const images = project?.images && project.images.length > 0 
+    ? project.images 
+    : (project?.image ? [project.image] : []);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const response = await fetch(`/api/projects?id=${params.id}`);
+        const data = await response.json();
+        if (data.ok) {
+          setProject(data.data);
+        } else {
+          setError(data.error || "Project not found");
+        }
+      } catch (err) {
+        console.error("Error fetching project:", err);
+        setError("Failed to load project");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (params.id) {
+      fetchProject();
+    }
+  }, [params.id]);
+
+  const scrollThumbnails = (direction: "left" | "right") => {
+    if (thumbnailScrollRef.current) {
+      const scrollAmount = 200;
+      thumbnailScrollRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen font-sans bg-[#1b2838]">
+        <Navbar />
+        <main className="pt-24 pb-16 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-[#16202d] rounded-lg p-8">
+              <p className="text-gray-400 text-center">Loading project...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="min-h-screen font-sans bg-[#1b2838]">
+        <Navbar />
+        <main className="pt-24 pb-16 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-[#16202d] rounded-lg p-8">
+              <p className="text-red-400 text-center">{error || "Project not found"}</p>
+              <div className="mt-4 text-center">
+                <Link
+                  href="/profile"
+                  className="text-[#66c0f4] hover:text-[#4a9bc4] font-medium"
+                >
+                  ← Back to Profile
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const githubUrl = project.githubRepo.startsWith("http")
+    ? project.githubRepo
+    : `https://github.com/${project.githubRepo}`;
+
+  return (
+    <div className="min-h-screen font-sans bg-[#1b2838]">
+      <Navbar />
+      <main className="pt-20 pb-16">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Breadcrumbs */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 text-sm text-[#8f98a0]">
+              <Link href="/profile" className="hover:text-[#66c0f4] transition-colors">
+                Profile
+              </Link>
+              <span>/</span>
+              <span className="text-white">{project.name}</span>
+            </div>
+          </div>
+
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
+            {/* Left Column - Media Player */}
+            <div className="space-y-4">
+              {/* Main Media Player */}
+              <div className="relative w-full bg-black rounded overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
+                {images.length > 0 && images[selectedImageIndex] ? (
+                  <Image
+                    src={images[selectedImageIndex]}
+                    alt={`${project.name} - Image ${selectedImageIndex + 1}`}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gray-800">
+                    <span className="text-gray-400">No image available</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Thumbnail Strip */}
+              {images.length > 1 && (
+                <div className="relative">
+                  <div
+                    ref={thumbnailScrollRef}
+                    className="flex gap-2 overflow-x-auto scrollbar-hide"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {images.map((img, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedImageIndex(index)}
+                        className={`relative flex-shrink-0 w-32 h-20 rounded overflow-hidden border-2 transition-all ${
+                          selectedImageIndex === index
+                            ? "border-white"
+                            : "border-transparent hover:border-gray-500"
+                        }`}
+                      >
+                        <Image
+                          src={img}
+                          alt={`Thumbnail ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity">
+                          <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {images.length > 4 && (
+                    <>
+                      <button
+                        onClick={() => scrollThumbnails("left")}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white p-2 rounded-r z-10"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => scrollThumbnails("right")}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/70 hover:bg-black/90 text-white p-2 rounded-l z-10"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Right Column - Information Panel */}
+            <div className="space-y-6">
+              {/* Title */}
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">{project.name}</h1>
+              </div>
+
+              {/* Key Art / Image Preview */}
+              {project.image && (
+                <div className="relative w-full rounded overflow-hidden" style={{ aspectRatio: "460 / 215" }}>
+                  <Image
+                    src={project.image}
+                    alt={project.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <p className="text-[#acb2b8] leading-relaxed text-sm">{project.description}</p>
+              </div>
+
+              {/* Metadata */}
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="text-[#66c0f4] font-medium mb-1">RELEASE DATE</div>
+                  <div className="text-[#8f98a0]">
+                    {new Date(project.createdAt).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[#66c0f4] font-medium mb-1">PLATFORMS</div>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {project.platforms.map((platform) => (
+                      <div
+                        key={platform}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-[#1e2329] text-[#acb2b8] rounded text-xs capitalize"
+                      >
+                        {platformIcons[platform] || (
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="12" r="10" />
+                          </svg>
+                        )}
+                        {platform}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[#66c0f4] font-medium mb-1">GITHUB REPOSITORY</div>
+                  <a
+                    href={githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#66c0f4] hover:text-[#4a9bc4] transition-colors break-all"
+                  >
+                    {project.githubRepo}
+                  </a>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <div className="text-[#66c0f4] font-medium mb-2 text-sm">POPULAR USER-DEFINED TAGS</div>
+                <div className="flex flex-wrap gap-2">
+                  {project.platforms.map((platform) => (
+                    <button
+                      key={platform}
+                      className="px-3 py-1 bg-[#1e2329] hover:bg-[#2a475e] text-[#acb2b8] rounded text-xs capitalize transition-colors"
+                    >
+                      {platform}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-3 pt-4">
+                <a
+                  href={githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#1b2838] hover:bg-[#2a475e] text-white px-6 py-3 rounded text-center font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  View on GitHub
+                </a>
+                <Link
+                  href="/profile"
+                  className="w-full bg-[#1e2329] hover:bg-[#2a475e] text-white px-6 py-3 rounded text-center font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Back to Profile
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
