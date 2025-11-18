@@ -24,7 +24,7 @@ export default async function Account() {
                     backgroundImage: "url('/background.png')",
                 }}
             >
-                <div className="ml-[15%] mr-[15%] bg-white text-black rounded-[24px]">
+                <div className="ml-[15%] mr-[15%] bg-white shadow-elevated text-black rounded-[24px]">
                     {userRes.ok ? (
                         <div  className="p-[24px]">
                             <h1>{user.name ?? user.login}</h1>
