@@ -13,7 +13,7 @@ const Navbar = () => {
   ];
 
   return (
-    <div className="mt-[20px] mb-[20px] w-full flex justify-center z-50">
+    <div className="mt-[20px] fixed mb-[20px] w-full flex justify-center z-50">
       <div className="w-[calc(100%-30%)] bg-white rounded-full px-6 py-3 shadow-elevated grid grid-cols-[1fr_auto_1fr] items-center">
         <div className="flex items-center gap-8 text-sm font-medium text-black justify-self-start">
           {navLinks.map(({ label, href }) => {
