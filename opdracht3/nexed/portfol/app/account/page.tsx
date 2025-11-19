@@ -16,12 +16,20 @@ type Repo = {
   [k: string]: any;
 };
 
+type Contributor = {
+  id: number;
+  login: string;
+  avatar_url: string;
+  html_url: string;
+};
+
 export default function Account() {
-    const name = "Danielo923";
+  const name = "Danielo923";
   const [user, setUser] = useState<any | null>(null);
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [contributors, setContributors] = useState<Record<number, Contributor[]>>({});
 
   // Filters
   const [activityFilter, setActivityFilter] = useState<"all" | "active" | "inactive">("all");
@@ -61,6 +69,24 @@ export default function Account() {
     };
   }, [name]);
 
+  // Contributors fetch
+  useEffect(() => {
+    if (!user || repos.length === 0) return;
+    const owner = user.login;
+    (async () => {
+      const map: Record<number, Contributor[]> = {};
+      await Promise.all(
+        repos.map(async (r) => {
+          try {
+            const res = await fetch(`https://api.github.com/repos/${owner}/${r.name}/contributors?per_page=10`);
+            if (res.ok) map[r.id] = await res.json();
+          } catch {}
+        })
+      );
+      setContributors(map);
+    })();
+  }, [user, repos]);
+
   // Unique languages
   const languages = useMemo(
     () =>
@@ -91,13 +117,13 @@ export default function Account() {
       });
   }, [repos, activityFilter, languageFilter, search]);
 
-    return (
-        <div>
-            <Navbar />
-            <div
-            className="bg-white pt-[150px]"
+  return (
+    <div>
+      <Navbar />
+      <div
+        className="bg-white pt-[150px]"
         style={{ backgroundImage: "url('/background.png')" }}
-            >
+      >
         <div className="ml-[15%] mr-[15%] bg-white text-black rounded-[24px] p-6 shadow-elevated">
           {loading && <p>Loading...</p>}
           {error && (
@@ -127,13 +153,13 @@ export default function Account() {
                     rel="noreferrer"
                     className="text-blue-600 hover:underline"
                   >
-                                    View on GitHub
-                                </a>
-                            </p>
+                    View on GitHub
+                  </a>
+                </p>
                 <div className="flex gap-2 items-center border rounded-full px-3 py-1 border-green-500 mt-3 max-w-max">
                   <div className="bg-green-500 rounded-full w-4 h-4" />
                   <p className="text-green-600 text-sm">Connected</p>
-                            </div>
+                </div>
               </div>
 
               {/* Filters */}
@@ -143,11 +169,10 @@ export default function Account() {
                     <button
                       key={v}
                       onClick={() => setActivityFilter(v as any)}
-                      className={`px-4 py-2 rounded-full text-sm border ${
-                        activityFilter === v
+                      className={`px-4 py-2 rounded-full text-sm border ${activityFilter === v
                           ? "bg-black text-white border-black"
                           : "bg-gray-100 text-black border-gray-300 hover:bg-gray-200"
-                      } transition`}
+                        } transition`}
                     >
                       {v.charAt(0).toUpperCase() + v.slice(1)}
                     </button>
@@ -196,35 +221,35 @@ export default function Account() {
                   {filtered.map(repo => {
                     const active =
                       Date.now() - new Date(repo.updated_at).getTime() <
-                      14 * 24 * 60 * 60 * 1000;
+                        14 * 24 * 60 * 60 * 1000;
                     return (
                       <li
                         key={repo.id}
-                        className="p-4 border rounded-lg mb-4 hover:shadow-lg transition-shadow"
+                        className="relative p-4 border rounded-lg mb-4 hover:shadow-lg transition-shadow"
                       >
-                                                <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start">
                           <a
                             href={repo.html_url}
                             target="_blank"
                             rel="noreferrer"
                             className="text-xl font-medium hover:text-blue-600"
                           >
-                                                        {repo.name}
-                                                    </a>
-                                                    <div className="flex items-center gap-4 text-sm text-black">
-                                                        <span>⭐ {repo.stargazers_count}</span>
-                                                        <span>🔄 {repo.forks_count}</span>
-                                                    </div>
-                                                </div>
+                            {repo.name}
+                          </a>
+                          <div className="flex items-center gap-4 text-sm text-black">
+                            <span>⭐ {repo.stargazers_count}</span>
+                            <span>🔄 {repo.forks_count}</span>
+                          </div>
+                        </div>
                         {repo.description && (
                           <p className="text-black mt-2">{repo.description}</p>
                         )}
-                                                <div className="mt-3 flex flex-wrap gap-2">
-                                                    {repo.language && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {repo.language && (
                             <span className="px-2 py-1 bg-gray-100 text-black rounded-full text-xs">
-                                                            {repo.language}
-                                                        </span>
-                                                    )}
+                              {repo.language}
+                            </span>
+                          )}
                           <span
                             className={`text-xs rounded-full px-2 py-1 ${
                               active
@@ -233,8 +258,8 @@ export default function Account() {
                             }`}
                           >
                             {active ? "Active" : "Inactive"}
-                                                    </span>
-                                                    {repo.homepage && (
+                          </span>
+                          {repo.homepage && (
                             <a
                               href={repo.homepage}
                               target="_blank"
@@ -242,18 +267,40 @@ export default function Account() {
                               className="text-blue-500 hover:underline text-xs"
                             >
                               Demo
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            </li>
+                            </a>
+                          )}
+                        </div>
+
+                        {/* bottom-right contributors */}
+                        {contributors[repo.id] && contributors[repo.id].length > 0 && (
+                          <div className="absolute bottom-3 right-3 flex -space-x-2">
+                            {contributors[repo.id].slice(0, 8).map((c) => (
+                              <a
+                                key={c.id}
+                                href={c.html_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={c.login}
+                                className="block w-7 h-7 rounded-full overflow-hidden border border-white"
+                              >
+                                <img
+                                  src={c.avatar_url}
+                                  alt={c.login}
+                                  className="w-full h-full object-cover"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </li>
                     );
                   })}
-                                    </ul>
-                            )}
+                </ul>
+              )}
             </>
-                    )}
-                </div>
-            </div>
+          )}
         </div>
-    );
+      </div>
+    </div>
+  );
 }
