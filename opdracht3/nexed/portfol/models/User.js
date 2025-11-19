@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema(
             unique: true, // Each email can only be used once
             lowercase: true, // Store emails in lowercase
         },
+        username: {
+            type: String,
+            required: true,
+            unique: true, // Each username can only be used once
+        },
         password: {
             type: String,
             required: true,

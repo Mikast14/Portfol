@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
         // Get email and password from the request body
         const body = await request.json();
-        const { email, password } = body;
+        const { email, password, username } = body;
 
         // Validate that both email and password are provided
         if (!email || !password) {
@@ -37,12 +37,13 @@ export async function POST(request: Request) {
             );
         }
 
-        // Hash the password before saving (for security)
+        // Hash the password before saving
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Create new user
         const user = new User({
             email: email.toLowerCase(),
+            username: username,
             password: hashedPassword,
         });
 
