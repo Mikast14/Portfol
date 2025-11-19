@@ -35,12 +35,17 @@ export default function Login() {
       const data = await response.json();
 
       if (data.ok) {
-        // Login successful!
+        // Login successful! Store token in localStorage
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+
         setMessage(data.message || "Login succesvol! ✅");
 
         // Redirect to home page after 1.5 seconds
         setTimeout(() => {
           router.push("/");
+          router.refresh(); // Refresh to update auth state
         }, 1500);
       } else {
         // Login failed - show error message

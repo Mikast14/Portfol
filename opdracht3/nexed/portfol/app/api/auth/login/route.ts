@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { generateToken } from "@/lib/jwt";
 
 export async function POST(request: Request) {
     try {
@@ -42,13 +43,22 @@ export async function POST(request: Request) {
             );
         }
 
-        // Login successful! Return success response
+        // Generate JWT token
+        const token = generateToken({
+            userId: user._id.toString(),
+            email: user.email,
+            username: user.username,
+        });
+
+        // Login successful! Return success response with token
         return NextResponse.json({
             ok: true,
             message: "Login succesvol! ✅",
+            token,
             user: {
                 id: user._id,
                 email: user.email,
+                username: user.username,
             },
         });
     } catch (error) {

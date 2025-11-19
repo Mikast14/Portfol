@@ -20,7 +20,11 @@ const projectSchema = new mongoose.Schema(
       enum: ["windows", "macos", "web", "linux"],
     },
     image: {
-      type: String, // Path to the image file
+      type: String, // Path to the primary image file (for backward compatibility)
+      required: false,
+    },
+    images: {
+      type: [String], // Array of paths to image files
       required: false,
     },
     userId: {
