@@ -32,6 +32,14 @@ export async function POST(request: Request) {
             );
         }
 
+        // Check if user is an OAuth user (no password)
+        if (!user.password) {
+            return NextResponse.json(
+                { ok: false, error: "Dit account gebruikt GitHub login. Log in met GitHub." },
+                { status: 401 }
+            );
+        }
+
         // Compare the provided password with the stored hashed password
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
