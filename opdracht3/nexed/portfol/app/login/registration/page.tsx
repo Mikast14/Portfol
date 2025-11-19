@@ -6,7 +6,7 @@ import Navbar from "../../Navbar";
 
 export default function RegistrationPage() {
     const router = useRouter();
-    const [fullName, setFullName] = useState("");
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -36,7 +36,7 @@ export default function RegistrationPage() {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password, fullName }),
+                body: JSON.stringify({ email, password, username }),
             });
             const data = await res.json();
             if (!res.ok || !data.ok) {
@@ -64,17 +64,17 @@ export default function RegistrationPage() {
 
                         <form noValidate className="space-y-6" onSubmit={handleSubmit}>
                             <div>
-                                <label htmlFor="fullName" className="block text-sm font-medium text-black mb-2">Volledige naam</label>
+                                <label htmlFor="username" className="block text-sm font-medium text-black mb-2">Volledige naam</label>
                                 <input
-                                    id="fullName"
-                                    name="fullName"
+                                    id="username"
+                                    name="username"
                                     type="text"
                                     autoComplete="name"
-                                    placeholder="Voor- en achternaam"
+                                    placeholder="Username"
                                     className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                                     required
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
                                 />
                             </div>
 

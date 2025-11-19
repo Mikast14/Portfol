@@ -2,9 +2,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const pathname = usePathname();
+  const { user, loading, isAuthenticated, logout } = useAuth();
 
   const navLinks = [
     { label: "Explore", href: "/explore" },
@@ -66,14 +68,30 @@ const Navbar = () => {
             />
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-          <a href="/login" className="bg-primary text-white rounded-full px-5 py-2 hover:bg-secondary-hover transition whitespace-nowrap">
-            Login
-          </a>
-          <a href="/login/registration" className="bg-accent text-white rounded-full px-5 py-2 hover:bg-primary-hover transition whitespace-nowrap">
-            Get started
-          </a>
-          </div>
+          {loading ? (
+            <div className="text-sm text-gray-500">Laden...</div>
+          ) : isAuthenticated && user ? (
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-sm text-black font-medium">
+                {user.username}
+              </span>
+              <button
+                onClick={logout}
+                className="bg-red-500 text-white rounded-full px-5 py-2 hover:bg-red-600 transition whitespace-nowrap"
+              >
+                Uitloggen
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 shrink-0">
+              <a href="/login" className="bg-primary text-white rounded-full px-5 py-2 hover:bg-secondary-hover transition whitespace-nowrap">
+                Login
+              </a>
+              <a href="/login/registration" className="bg-accent text-white rounded-full px-5 py-2 hover:bg-primary-hover transition whitespace-nowrap">
+                Get started
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
