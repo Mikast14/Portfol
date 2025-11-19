@@ -1,31 +1,34 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 import type { ChangeEvent, MouseEvent } from "react";
 
 interface ProjectImageSectionProps {
+  mainImageUrl: string;
   mainImagePreview: string | null;
+  additionalImageUrls: string[];
   additionalImagePreviews: string[];
   loading: boolean;
-  onMainImageChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  onAdditionalImagesChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onMainImageUrlChange: (url: string) => void;
+  onAdditionalImageUrlAdd: (url: string) => void;
   onRemoveMainImage: () => void;
   onRemoveAdditionalImage: (index: number) => void;
 }
 
 export default function ProjectImageSection({
+  mainImageUrl,
   mainImagePreview,
+  additionalImageUrls,
   additionalImagePreviews,
   loading,
-  onMainImageChange,
-  onAdditionalImagesChange,
+  onMainImageUrlChange,
+  onAdditionalImageUrlAdd,
   onRemoveMainImage,
   onRemoveAdditionalImage,
 }: ProjectImageSectionProps) {
-  const mainImageInputRef = useRef<HTMLInputElement | null>(null);
-  const additionalImagesInputRef = useRef<HTMLInputElement | null>(null);
   const maxAdditionalImages = 4;
   const canAddMore = additionalImagePreviews.length < maxAdditionalImages;
+  const [newAdditionalImageUrl, setNewAdditionalImageUrl] = useState("");
 
   const handleRemoveMainImage = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -39,6 +42,18 @@ export default function ProjectImageSection({
     onRemoveAdditionalImage(index);
   };
 
+  const handleMainImageUrlChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const url = event.target.value;
+    onMainImageUrlChange(url);
+  };
+
+  const handleAddAdditionalImage = () => {
+    if (newAdditionalImageUrl.trim() && canAddMore) {
+      onAdditionalImageUrlAdd(newAdditionalImageUrl.trim());
+      setNewAdditionalImageUrl("");
+    }
+  };
+
   return (
     <div className="bg-white rounded-large p-8 shadow-elevated">
       <div className="mb-6 pb-4 border-b border-gray-200">
@@ -47,78 +62,52 @@ export default function ProjectImageSection({
           Project Images
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Upload a main image (required) and up to {maxAdditionalImages} additional images
+          Paste image URLs for the main image (required) and up to {maxAdditionalImages} additional images
         </p>
       </div>
 
       <div className="space-y-8">
         {/* Main Image Section */}
         <div>
-          <h3 className="text-lg font-medium text-foreground mb-4">Main Image *</h3>
-          {mainImagePreview ? (
-            <div className="relative group">
-              <div className="relative w-full max-w-md h-64 rounded-base overflow-hidden bg-gray-100 border-2 border-accent">
-                <img src={mainImagePreview} alt="Main preview" className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={handleRemoveMainImage}
-                  disabled={loading}
-                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Remove main image"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-                <div className="absolute top-2 left-2 bg-accent text-white text-xs px-3 py-1 rounded font-semibold">
-                  Main Image
-                </div>
-              </div>
-            </div>
-          ) : (
-            <label
-              htmlFor="mainImage"
-              className="block w-full max-w-md border-2 border-dashed border-gray-300 rounded-base p-8 text-center cursor-pointer transition-all hover:border-accent hover:bg-accent/5 bg-gray-50/50"
-            >
-              <input
-                ref={mainImageInputRef}
-                type="file"
-                id="mainImage"
-                accept="image/*"
-                onChange={onMainImageChange}
-                disabled={loading}
-                className="hidden"
-              />
-              <div className="space-y-3">
-                <div className="mx-auto w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-8 h-8 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+          <h3 className="text-lg font-medium text-foreground mb-4">Main Image URL *</h3>
+          <div className="space-y-4">
+            <input
+              type="url"
+              value={mainImageUrl}
+              onChange={handleMainImageUrlChange}
+              placeholder="https://example.com/image.jpg"
+              disabled={loading}
+              className="w-full max-w-md px-4 py-3 border-2 border-gray-300 rounded-base focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+            {mainImagePreview && (
+              <div className="relative group">
+                <div className="relative w-full max-w-md h-64 rounded-base overflow-hidden bg-gray-100 border-2 border-accent">
+                  <img src={mainImagePreview} alt="Main preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={handleRemoveMainImage}
+                    disabled={loading}
+                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg z-10 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Remove main image"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-black">Click to upload main image</p>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <div className="absolute top-2 left-2 bg-accent text-white text-xs px-3 py-1 rounded font-semibold">
+                    Main Image
+                  </div>
                 </div>
               </div>
-            </label>
-          )}
+            )}
+          </div>
           {!mainImagePreview && (
-            <p className="text-sm text-red-600 mt-2">* Main image is required</p>
+            <p className="text-sm text-red-600 mt-2">* Main image URL is required</p>
           )}
         </div>
 
@@ -160,48 +149,37 @@ export default function ProjectImageSection({
           )}
 
           {canAddMore && (
-            <label
-              htmlFor="additionalImages"
-              className={`block w-full border-2 border-dashed rounded-base p-6 text-center cursor-pointer transition-all hover:border-accent hover:bg-accent/5 ${
-                additionalImagePreviews.length > 0 ? "border-accent bg-accent/5" : "border-gray-300 bg-gray-50/50"
-              }`}
-            >
-              <input
-                ref={additionalImagesInputRef}
-                type="file"
-                id="additionalImages"
-                accept="image/*"
-                multiple
-                onChange={onAdditionalImagesChange}
-                disabled={loading}
-                className="hidden"
-              />
-              <div className="space-y-2">
-                <div className="mx-auto w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-black">
-                    {additionalImagePreviews.length > 0
-                      ? `Add more images (${maxAdditionalImages - additionalImagePreviews.length} remaining)`
-                      : "Click to upload additional images (optional)"}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
-                </div>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={newAdditionalImageUrl}
+                  onChange={(e) => setNewAdditionalImageUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddAdditionalImage();
+                    }
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-base focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddAdditionalImage}
+                  disabled={loading || !newAdditionalImageUrl.trim()}
+                  className="px-6 py-3 bg-accent text-white rounded-base hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                >
+                  Add
+                </button>
               </div>
-            </label>
+              <p className="text-xs text-gray-500">
+                {additionalImagePreviews.length > 0
+                  ? `${maxAdditionalImages - additionalImagePreviews.length} more image${maxAdditionalImages - additionalImagePreviews.length > 1 ? 's' : ''} can be added`
+                  : "Add additional images (optional)"}
+              </p>
+            </div>
           )}
         </div>
       </div>
