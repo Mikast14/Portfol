@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Navbar from "../../../Navbar";
 import Link from "next/link";
@@ -18,7 +18,7 @@ interface Project {
   updatedAt: string;
 }
 
-const platformIcons: Record<string, JSX.Element> = {
+const platformIcons: Record<string, React.ReactElement> = {
   windows: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
       <path d="M3 12V6.75l6-1.32v6.48L3 12zm17-9v8.75l-10 .15V5.21L20 3zM3 13l6 .09v6.81l-6-1.15V13zm17 .25V22l-10-1.8v-7.45l10 .15z" />
@@ -48,7 +48,9 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
+  const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Create array of images - use images array if available, otherwise fall back to single image
   const images = project?.images && project.images.length > 0 
@@ -77,6 +79,55 @@ export default function ProjectDetail() {
       fetchProject();
     }
   }, [params.id]);
+
+  // Auto-advance carousel every 5 seconds
+  useEffect(() => {
+    if (images.length <= 1) return;
+
+    // Clear any existing interval
+    if (carouselIntervalRef.current) {
+      clearInterval(carouselIntervalRef.current);
+    }
+
+    const interval = setInterval(() => {
+      setSelectedImageIndex((prevIndex) => {
+        setSlideDirection("right");
+        return (prevIndex + 1) % images.length;
+      });
+    }, 5000);
+
+    carouselIntervalRef.current = interval;
+
+    return () => {
+      if (carouselIntervalRef.current) {
+        clearInterval(carouselIntervalRef.current);
+      }
+    };
+  }, [images.length]);
+
+  // Reset carousel timer when user manually selects an image
+  const handleImageSelect = (index: number) => {
+    // Determine slide direction
+    if (index > selectedImageIndex) {
+      setSlideDirection("right");
+    } else if (index < selectedImageIndex) {
+      setSlideDirection("left");
+    }
+    setSelectedImageIndex(index);
+    // Reset the carousel timer
+    if (carouselIntervalRef.current) {
+      clearInterval(carouselIntervalRef.current);
+    }
+    if (images.length > 1) {
+      const interval = setInterval(() => {
+        setSelectedImageIndex((prevIndex) => {
+          setSlideDirection("right");
+          return (prevIndex + 1) % images.length;
+        });
+      }, 5000);
+      carouselIntervalRef.current = interval;
+    }
+  };
 
   const scrollThumbnails = (direction: "left" | "right") => {
     if (thumbnailScrollRef.current) {
@@ -151,16 +202,34 @@ export default function ProjectDetail() {
             {/* Left Column - Media Player */}
             <div className="space-y-4">
               {/* Main Media Player */}
-              <div className="bg-white rounded-large shadow-elevated overflow-hidden">
+              <div className="bg-white rounded-large shadow-elevated overflow-hidden group">
                 <div className="relative w-full bg-gray-200 rounded-large overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
-                  {images.length > 0 && images[selectedImageIndex] ? (
-                    <Image
-                      src={images[selectedImageIndex]}
-                      alt={`${project.name} - Image ${selectedImageIndex + 1}`}
-                      fill
-                      className="object-cover"
-                      priority
-                    />
+                  {images.length > 0 ? (
+                    <div className="relative w-full h-full overflow-hidden">
+                      <div 
+                        className="flex transition-transform duration-500 ease-in-out h-full"
+                        style={{
+                          transform: `translateX(-${selectedImageIndex * 100}%)`,
+                        }}
+                      >
+                        {images.map((img, index) => (
+                          <div
+                            key={`${img}-${index}`}
+                            className="relative shrink-0 w-full h-full"
+                          >
+                            <Image
+                              src={img}
+                              alt={`${project.name} - Image ${index + 1}`}
+                              fill
+                              className={`object-cover transition-transform duration-500 ${
+                                index === selectedImageIndex ? "group-hover:scale-105" : ""
+                              }`}
+                              priority={index === 0}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-gray-200">
                       <span className="text-gray-500">No image available</span>
@@ -180,8 +249,8 @@ export default function ProjectDetail() {
                     {images.map((img, index) => (
                       <button
                         key={index}
-                        onClick={() => setSelectedImageIndex(index)}
-                        className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all ${
+                        onClick={() => handleImageSelect(index)}
+                        className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all group ${
                           selectedImageIndex === index
                             ? "border-accent"
                             : "border-gray-300 hover:border-gray-400"
@@ -191,13 +260,8 @@ export default function ProjectDetail() {
                           src={img}
                           alt={`Thumbnail ${index + 1}`}
                           fill
-                          className="object-cover"
+                          className="object-cover transition-transform duration-300 group-hover:scale-110"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
                       </button>
                     ))}
                   </div>
