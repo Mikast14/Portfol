@@ -64,7 +64,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen font-sans bg-background">
+    <div className="min-h-screen font-sans bg-white">
       <Navbar />
       <main className="pt-24 pb-16 px-6">
         <div className="max-w-6xl mx-auto">

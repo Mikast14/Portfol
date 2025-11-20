@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import Navbar from "../../../Navbar";
 import Link from "next/link";
@@ -18,7 +18,7 @@ interface Project {
   updatedAt: string;
 }
 
-const platformIcons: Record<string, JSX.Element> = {
+const platformIcons: Record<string, React.ReactElement> = {
   windows: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
       <path d="M3 12V6.75l6-1.32v6.48L3 12zm17-9v8.75l-10 .15V5.21L20 3zM3 13l6 .09v6.81l-6-1.15V13zm17 .25V22l-10-1.8v-7.45l10 .15z" />
@@ -48,7 +48,9 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
+  const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Create array of images - use images array if available, otherwise fall back to single image
   const images = project?.images && project.images.length > 0 
@@ -78,6 +80,55 @@ export default function ProjectDetail() {
     }
   }, [params.id]);
 
+  // Auto-advance carousel every 5 seconds
+  useEffect(() => {
+    if (images.length <= 1) return;
+
+    // Clear any existing interval
+    if (carouselIntervalRef.current) {
+      clearInterval(carouselIntervalRef.current);
+    }
+
+    const interval = setInterval(() => {
+      setSelectedImageIndex((prevIndex) => {
+        setSlideDirection("right");
+        return (prevIndex + 1) % images.length;
+      });
+    }, 5000);
+
+    carouselIntervalRef.current = interval;
+
+    return () => {
+      if (carouselIntervalRef.current) {
+        clearInterval(carouselIntervalRef.current);
+      }
+    };
+  }, [images.length]);
+
+  // Reset carousel timer when user manually selects an image
+  const handleImageSelect = (index: number) => {
+    // Determine slide direction
+    if (index > selectedImageIndex) {
+      setSlideDirection("right");
+    } else if (index < selectedImageIndex) {
+      setSlideDirection("left");
+    }
+    setSelectedImageIndex(index);
+    // Reset the carousel timer
+    if (carouselIntervalRef.current) {
+      clearInterval(carouselIntervalRef.current);
+    }
+    if (images.length > 1) {
+      const interval = setInterval(() => {
+        setSelectedImageIndex((prevIndex) => {
+          setSlideDirection("right");
+          return (prevIndex + 1) % images.length;
+        });
+      }, 5000);
+      carouselIntervalRef.current = interval;
+    }
+  };
+
   const scrollThumbnails = (direction: "left" | "right") => {
     if (thumbnailScrollRef.current) {
       const scrollAmount = 200;
@@ -90,7 +141,7 @@ export default function ProjectDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen font-sans bg-background">
+      <div className="min-h-screen font-sans bg-white">
         <Navbar />
         <main className="pt-24 pb-16 px-6">
           <div className="max-w-7xl mx-auto">
@@ -105,13 +156,13 @@ export default function ProjectDetail() {
 
   if (error || !project) {
     return (
-      <div className="min-h-screen font-sans bg-background">
+      <div className="min-h-screen font-sans bg-white">
         <Navbar />
         <main className="pt-24 pb-16 px-6">
           <div className="max-w-7xl mx-auto">
             <div className="bg-white rounded-large p-8 shadow-elevated">
-              <p className="text-red-500 text-center mb-4">{error || "Project not found"}</p>
-              <div className="text-center">
+              <p className="text-red-600 text-center">{error || "Project not found"}</p>
+              <div className="mt-4 text-center">
                 <Link
                   href="/profile"
                   className="text-accent hover:text-primary-hover font-medium"
@@ -131,18 +182,18 @@ export default function ProjectDetail() {
     : `https://github.com/${project.githubRepo}`;
 
   return (
-    <div className="min-h-screen font-sans bg-background">
+    <div className="min-h-screen font-sans bg-white">
       <Navbar />
       <main className="pt-24 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumbs */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Link href="/profile" className="hover:text-accent transition-colors">
+            <div className="flex items-center gap-2 text-sm text-gray-700">
+              <Link href="/profile" className="hover:text-accent transition-colors text-gray-700">
                 Profile
               </Link>
-              <span>/</span>
-              <span className="text-foreground">{project.name}</span>
+              <span className="text-gray-400">/</span>
+              <span className="text-black font-medium">{project.name}</span>
             </div>
           </div>
 
@@ -151,25 +202,45 @@ export default function ProjectDetail() {
             {/* Left Column - Media Player */}
             <div className="space-y-4">
               {/* Main Media Player */}
-              <div className="relative w-full bg-gray-100 rounded-large overflow-hidden shadow-elevated" style={{ aspectRatio: "16 / 9" }}>
-                {images.length > 0 && images[selectedImageIndex] ? (
-                  <Image
-                    src={images[selectedImageIndex]}
-                    alt={`${project.name} - Image ${selectedImageIndex + 1}`}
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-gray-200">
-                    <span className="text-gray-500">No image available</span>
-                  </div>
-                )}
+              <div className="bg-white rounded-large shadow-elevated overflow-hidden group">
+                <div className="relative w-full bg-gray-200 rounded-large overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
+                  {images.length > 0 ? (
+                    <div className="relative w-full h-full overflow-hidden">
+                      <div 
+                        className="flex transition-transform duration-500 ease-in-out h-full"
+                        style={{
+                          transform: `translateX(-${selectedImageIndex * 100}%)`,
+                        }}
+                      >
+                        {images.map((img, index) => (
+                          <div
+                            key={`${img}-${index}`}
+                            className="relative shrink-0 w-full h-full"
+                          >
+                            <Image
+                              src={img}
+                              alt={`${project.name} - Image ${index + 1}`}
+                              fill
+                              className={`object-cover transition-transform duration-500 ${
+                                index === selectedImageIndex ? "group-hover:scale-105" : ""
+                              }`}
+                              priority={index === 0}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gray-200">
+                      <span className="text-gray-500">No image available</span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Thumbnail Strip */}
               {images.length > 1 && (
-                <div className="relative">
+                <div className="relative bg-white rounded-large p-4 shadow-elevated">
                   <div
                     ref={thumbnailScrollRef}
                     className="flex gap-2 overflow-x-auto scrollbar-hide"
@@ -178,24 +249,19 @@ export default function ProjectDetail() {
                     {images.map((img, index) => (
                       <button
                         key={index}
-                        onClick={() => setSelectedImageIndex(index)}
-                        className={`relative flex-shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all ${
+                        onClick={() => handleImageSelect(index)}
+                        className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all group ${
                           selectedImageIndex === index
-                            ? "border-accent shadow-md"
-                            : "border-gray-200 hover:border-accent/50"
+                            ? "border-accent"
+                            : "border-gray-300 hover:border-gray-400"
                         }`}
                       >
                         <Image
                           src={img}
                           alt={`Thumbnail ${index + 1}`}
                           fill
-                          className="object-cover"
+                          className="object-cover transition-transform duration-300 group-hover:scale-110"
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity">
-                          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
                       </button>
                     ))}
                   </div>
@@ -203,7 +269,7 @@ export default function ProjectDetail() {
                     <>
                       <button
                         onClick={() => scrollThumbnails("left")}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 p-2 rounded-r shadow-lg z-10 transition-colors"
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg text-gray-700 p-2 rounded-full z-10"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -211,7 +277,7 @@ export default function ProjectDetail() {
                       </button>
                       <button
                         onClick={() => scrollThumbnails("right")}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-700 p-2 rounded-l shadow-lg z-10 transition-colors"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg text-gray-700 p-2 rounded-full z-10"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -225,82 +291,88 @@ export default function ProjectDetail() {
 
             {/* Right Column - Information Panel */}
             <div className="space-y-6">
-              {/* Key Art / Image Preview */}
-              {project.image && (
-                <div className="relative w-full rounded-large overflow-hidden shadow-elevated" style={{ aspectRatio: "460 / 215" }}>
-                  <Image
-                    src={project.image}
-                    alt={project.name}
-                    fill
-                    className="object-cover"
-                  />
+              {/* Main Info Card */}
+              <div className="bg-white rounded-large p-6 shadow-elevated">
+                {/* Title */}
+                <div className="mb-4">
+                  <h1 className="text-3xl font-bold text-black mb-2">{project.name}</h1>
                 </div>
-              )}
 
-              {/* All Information in One Card */}
-              <div className="bg-white rounded-large p-6 shadow-elevated space-y-6">
-                {/* Title and Description */}
-                <div>
-                  <h1 className="text-3xl font-bold text-accent mb-3">{project.name}</h1>
+                {/* Description */}
+                <div className="mb-6">
                   <p className="text-gray-600 leading-relaxed">{project.description}</p>
                 </div>
+              </div>
 
-                {/* Release Date */}
-                <div>
-                  <div className="text-accent font-semibold mb-2 text-sm">RELEASE DATE</div>
-                  <div className="text-gray-600">
-                    {new Date(project.createdAt).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
+              {/* Metadata Card */}
+              <div className="bg-white rounded-large p-6 shadow-elevated">
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-accent font-medium mb-2 text-sm">RELEASE DATE</div>
+                    <div className="text-gray-600">
+                      {new Date(project.createdAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-accent font-medium mb-2 text-sm">PLATFORMS</div>
+                    <div className="flex flex-wrap gap-2">
+                      {project.platforms.map((platform) => (
+                        <div
+                          key={platform}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs capitalize"
+                        >
+                          {platformIcons[platform] || (
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                              <circle cx="12" cy="12" r="10" />
+                            </svg>
+                          )}
+                          {platform}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-accent font-medium mb-2 text-sm">GITHUB REPOSITORY</div>
+                    <a
+                      href={githubUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent hover:text-primary-hover transition-colors break-all text-sm"
+                    >
+                      {project.githubRepo}
+                    </a>
                   </div>
                 </div>
-
-                {/* Platforms */}
-                <div>
-                  <div className="text-accent font-semibold mb-2 text-sm">PLATFORMS</div>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {project.platforms.map((platform) => (
-                      <div
-                        key={platform}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-base text-sm capitalize font-medium"
-                      >
-                        {platformIcons[platform] || (
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                            <circle cx="12" cy="12" r="10" />
-                          </svg>
-                        )}
-                        {platform}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-3">
-                <a
-                  href={githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-accent hover:bg-primary-hover text-white px-6 py-3 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                  </svg>
-                  View on GitHub
-                </a>
-                <Link
-                  href="/profile"
-                  className="w-full bg-white hover:bg-gray-50 text-accent px-6 py-3 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-2 border-2 border-accent/30 hover:border-accent/50 shadow-lg"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Back to Profile
-                </Link>
+              <div className="bg-white rounded-large p-6 shadow-elevated">
+                <div className="flex flex-col gap-3">
+                  <a
+                    href={githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-accent hover:bg-primary-hover text-white px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                    </svg>
+                    View on GitHub
+                  </a>
+                  <Link
+                    href="/profile"
+                    className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to Profile
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
