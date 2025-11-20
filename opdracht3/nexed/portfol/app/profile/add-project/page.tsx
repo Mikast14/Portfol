@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../../Navbar";
 import BasicInfoSection from "./components/BasicInfoSection";
@@ -16,9 +16,9 @@ export default function AddProject() {
   const [description, setDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
   const [platforms, setPlatforms] = useState<string[]>([]);
-  const [mainImage, setMainImage] = useState<File | null>(null);
+  const [mainImageUrl, setMainImageUrl] = useState("");
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
-  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -73,75 +73,45 @@ export default function AddProject() {
     [setPlatforms]
   );
 
-  const handleMainImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.target;
-    const file = input.files?.[0];
-    if (!file) {
-      return;
+  // Update preview when main image URL changes
+  useEffect(() => {
+    if (mainImageUrl.trim()) {
+      setMainImagePreview(mainImageUrl);
+    } else {
+      setMainImagePreview(null);
     }
+  }, [mainImageUrl]);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setMainImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    setMainImage(file);
-    input.value = "";
+  // Update previews when additional image URLs change
+  useEffect(() => {
+    setAdditionalImagePreviews(additionalImageUrls);
+  }, [additionalImageUrls]);
+
+  const handleMainImageUrlChange = useCallback((url: string) => {
+    setMainImageUrl(url);
   }, []);
 
   const handleRemoveMainImage = useCallback(() => {
-    setMainImage(null);
+    setMainImageUrl("");
     setMainImagePreview(null);
   }, []);
 
-  const handleAdditionalImagesChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const input = event.target;
-      const files = input.files;
-      if (!files || files.length === 0) {
-        return;
-      }
-
-      const maxAdditionalImages = 4;
-      const availableSlots = maxAdditionalImages - additionalImages.length;
-      if (availableSlots <= 0) {
-        input.value = "";
-        return;
-      }
-
-      const filesToAdd = Array.from(files).slice(0, availableSlots);
-
-      const previewPromises = filesToAdd.map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-          })
-      );
-
-      Promise.all(previewPromises).then((previews) => {
-        setAdditionalImages((prev) => [...prev, ...filesToAdd]);
-        setAdditionalImagePreviews((prev) => [...prev, ...previews]);
-      });
-
-      input.value = "";
-    },
-    [additionalImages.length]
-  );
+  const handleAdditionalImageUrlAdd = useCallback((url: string) => {
+    const maxAdditionalImages = 4;
+    if (additionalImageUrls.length < maxAdditionalImages) {
+      setAdditionalImageUrls((prev) => [...prev, url]);
+    }
+  }, [additionalImageUrls.length]);
 
   const handleRemoveAdditionalImage = useCallback((index: number) => {
-    setAdditionalImages((prev) => prev.filter((_, i) => i !== index));
-    setAdditionalImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setAdditionalImageUrls((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!name || !description || !githubRepo || platforms.length === 0 || !mainImage) {
-      setMessage("Please fill in all required fields (main image is required)");
+    if (!name || !description || !githubRepo || platforms.length === 0 || !mainImageUrl.trim()) {
+      setMessage("Please fill in all required fields (main image URL is required)");
       return;
     }
 
@@ -149,28 +119,19 @@ export default function AddProject() {
     setMessage("");
 
     try {
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("description", description);
-      formData.append("githubRepo", githubRepo);
-      formData.append("platforms", platforms.join(","));
-      
-      // Add main image
-      formData.append("mainImage", mainImage);
-      console.log(`Adding mainImage to FormData:`, mainImage.name, mainImage.size, 'bytes');
-      
-      // Add additional images
-      additionalImages.forEach((image, index) => {
-        formData.append(`additionalImage_${index}`, image);
-        console.log(`Adding additionalImage_${index} to FormData:`, image.name, image.size, 'bytes');
-      });
-      formData.append("additionalImageCount", additionalImages.length.toString());
-      
-      console.log(`Sending FormData with 1 main image and ${additionalImages.length} additional images`);
-
       const response = await fetch("/api/projects", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          githubRepo,
+          platforms: platforms.join(","),
+          mainImageUrl: mainImageUrl.trim(),
+          additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
+        }),
       });
 
       const data = await response.json();
@@ -192,7 +153,7 @@ export default function AddProject() {
   };
 
   return (
-    <div className="min-h-screen font-sans bg-background">
+    <div className="min-h-screen font-sans bg-white">
       <Navbar />
       <main className="pt-24 pb-16 px-6">
         <div className="max-w-3xl mx-auto">
@@ -236,11 +197,13 @@ export default function AddProject() {
             />
 
             <ProjectImageSection
+              mainImageUrl={mainImageUrl}
               mainImagePreview={mainImagePreview}
+              additionalImageUrls={additionalImageUrls}
               additionalImagePreviews={additionalImagePreviews}
               loading={loading}
-              onMainImageChange={handleMainImageChange}
-              onAdditionalImagesChange={handleAdditionalImagesChange}
+              onMainImageUrlChange={handleMainImageUrlChange}
+              onAdditionalImageUrlAdd={handleAdditionalImageUrlAdd}
               onRemoveMainImage={handleRemoveMainImage}
               onRemoveAdditionalImage={handleRemoveAdditionalImage}
             />
@@ -275,7 +238,7 @@ export default function AddProject() {
             <div className="flex gap-4 pt-2">
               <button
                 type="submit"
-                disabled={loading || platforms.length === 0 || !mainImage}
+                disabled={loading || platforms.length === 0 || !mainImageUrl.trim()}
                 className="flex-1 bg-accent text-white rounded-full px-8 py-4 hover:bg-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {loading ? (
