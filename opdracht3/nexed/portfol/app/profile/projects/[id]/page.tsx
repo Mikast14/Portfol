@@ -49,13 +49,50 @@ export default function ProjectDetail() {
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
+  const [contributors, setContributors] = useState<{
+    id: number;
+    login: string;
+    avatar_url: string;
+    html_url: string;
+    contributions: number;
+  }[]>([]);
+  const [contributorsLoading, setContributorsLoading] = useState(false);
+  const [contributorsError, setContributorsError] = useState<string | null>(null);
+
+  // NEW: single repo metadata (cached 20 min)
+  const [repoInfo, setRepoInfo] = useState<null | {
+    id: number;
+    stargazers_count: number;
+    forks_count: number;
+    language: string | null;
+    updated_at: string;
+    homepage?: string | null;
+    html_url: string;
+  }>(null);
+  const [repoLoading, setRepoLoading] = useState(false);
+  const [repoError, setRepoError] = useState<string | null>(null);
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
   const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Create array of images - use images array if available, otherwise fall back to single image
-  const images = project?.images && project.images.length > 0 
-    ? project.images 
+  const images = project?.images && project.images.length > 0
+    ? project.images
     : (project?.image ? [project.image] : []);
+
+  const parseRepo = (input: string) => {
+    const raw = input.trim();
+    if (!raw) return null;
+    if (raw.startsWith("http")) {
+      try {
+        const u = new URL(raw);
+        const parts = u.pathname.split("/").filter(Boolean);
+        if (parts.length >= 2) return { owner: parts[0], repo: parts[1] };
+      } catch { }
+    }
+    const parts = raw.split("/").filter(Boolean);
+    if (parts.length >= 2) return { owner: parts[0], repo: parts[1] };
+    return null;
+  };
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -139,6 +176,110 @@ export default function ProjectDetail() {
     }
   };
 
+  useEffect(() => {
+    if (!project?.githubRepo) return;
+    const parsed = parseRepo(project.githubRepo);
+    if (!parsed) return;
+
+    const { owner, repo } = parsed;
+    const storageKey = `contributors:${owner}/${repo}`;
+    const ttlMs = 20 * 60 * 1000; // 20 minutes
+
+    const now = Date.now();
+    try {
+      const cachedRaw = localStorage.getItem(storageKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached.timestamp && now - cached.timestamp < ttlMs && Array.isArray(cached.data)) {
+          setContributors(cached.data);
+          return;
+        }
+      }
+    } catch { }
+
+    const fetchContributors = async () => {
+      setContributorsLoading(true);
+      setContributorsError(null);
+      try {
+        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=10`);
+        if (!res.ok) {
+          throw new Error(`GitHub error ${res.status}`);
+        }
+        const data = await res.json();
+        const simplified = (Array.isArray(data) ? data : []).map((c: any) => ({
+          id: c.id,
+          login: c.login,
+          avatar_url: c.avatar_url,
+          html_url: c.html_url,
+          contributions: c.contributions,
+        }));
+        setContributors(simplified);
+        try {
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({ timestamp: now, data: simplified })
+          );
+        } catch { }
+      } catch (e: any) {
+        setContributorsError(e.message || "Failed to load contributors");
+      } finally {
+        setContributorsLoading(false);
+      }
+    };
+
+    fetchContributors();
+  }, [project?.githubRepo]);
+
+  // NEW: fetch repo metadata (stars, forks, language, active status)
+  useEffect(() => {
+    if (!project?.githubRepo) return;
+    const parsed = parseRepo(project.githubRepo);
+    if (!parsed) return;
+
+    const { owner, repo } = parsed;
+    const storageKey = `repoInfo:${owner}/${repo}`;
+    const ttlMs = 20 * 60 * 1000; // 20 minutes
+    const now = Date.now();
+
+    try {
+      const cachedRaw = localStorage.getItem(storageKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached.timestamp && now - cached.timestamp < ttlMs && cached.data) {
+          setRepoInfo(cached.data);
+          return;
+        }
+      }
+    } catch { }
+
+    (async () => {
+      setRepoLoading(true);
+      setRepoError(null);
+      try {
+        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
+        if (!res.ok) throw new Error(`GitHub error ${res.status}`);
+        const data = await res.json();
+        const simplified = {
+          id: data.id,
+          stargazers_count: data.stargazers_count,
+          forks_count: data.forks_count,
+          language: data.language,
+          updated_at: data.updated_at,
+          homepage: data.homepage,
+          html_url: data.html_url,
+        };
+        setRepoInfo(simplified);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: simplified }));
+        } catch { }
+      } catch (e: any) {
+        setRepoError(e.message || "Failed to load repository info");
+      } finally {
+        setRepoLoading(false);
+      }
+    })();
+  }, [project?.githubRepo]);
+
   if (loading) {
     return (
       <div className="min-h-screen font-sans bg-white">
@@ -206,7 +347,7 @@ export default function ProjectDetail() {
                 <div className="relative w-full bg-gray-200 rounded-large overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
                   {images.length > 0 ? (
                     <div className="relative w-full h-full overflow-hidden">
-                      <div 
+                      <div
                         className="flex transition-transform duration-500 ease-in-out h-full"
                         style={{
                           transform: `translateX(-${selectedImageIndex * 100}%)`,
@@ -221,9 +362,8 @@ export default function ProjectDetail() {
                               src={img}
                               alt={`${project.name} - Image ${index + 1}`}
                               fill
-                              className={`object-cover transition-transform duration-500 ${
-                                index === selectedImageIndex ? "group-hover:scale-105" : ""
-                              }`}
+                              className={`object-cover transition-transform duration-500 ${index === selectedImageIndex ? "group-hover:scale-105" : ""
+                                }`}
                               priority={index === 0}
                             />
                           </div>
@@ -250,11 +390,10 @@ export default function ProjectDetail() {
                       <button
                         key={index}
                         onClick={() => handleImageSelect(index)}
-                        className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all group ${
-                          selectedImageIndex === index
+                        className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all group ${selectedImageIndex === index
                             ? "border-accent"
                             : "border-gray-300 hover:border-gray-400"
-                        }`}
+                          }`}
                       >
                         <Image
                           src={img}
@@ -345,6 +484,79 @@ export default function ProjectDetail() {
                     >
                       {project.githubRepo}
                     </a>
+
+                    {/* Tags */}
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                      {repoLoading && <span className="text-gray-500">Loading repository info...</span>}
+                      {repoError && <span className="text-red-500">{repoError}</span>}
+                      {!!repoInfo && (
+                        <>
+                          {(() => {
+                            const active =
+                              Date.now() - new Date(repoInfo.updated_at).getTime() <
+                              14 * 24 * 60 * 60 * 1000;
+                            return (
+                              <span
+                                className={`px-2 py-1 rounded-full ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                  }`}
+                              >
+                                {active ? "Active" : "Inactive"}
+                              </span>
+                            );
+                          })()}
+                          {repoInfo.language && (
+                            <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                              {repoInfo.language}
+                            </span>
+                          )}
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                            ⭐ {repoInfo.stargazers_count}
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                            🔄 {repoInfo.forks_count}
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Contributors */}
+                    <div className="mt-4">
+                      <div className="text-accent font-medium mb-2 text-sm">TOP CONTRIBUTORS</div>
+                      {contributorsLoading && (
+                        <p className="text-xs text-gray-500">Loading contributors...</p>
+                      )}
+                      {contributorsError && (
+                        <p className="text-xs text-red-500">{contributorsError}</p>
+                      )}
+                      {!contributorsLoading && !contributorsError && contributors.length === 0 && (
+                        <p className="text-xs text-gray-400">No contributors found.</p>
+                      )}
+                      {contributors.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {contributors.map(c => (
+                            <a
+                              key={c.id}
+                              href={c.html_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-xs hover:bg-gray-200 transition"
+                              title={`${c.login} (${c.contributions} contributions)`}
+                            >
+                              <img
+                                src={c.avatar_url}
+                                alt={c.login}
+                                className="w-5 h-5 rounded-full object-cover"
+                              />
+                              <span className="text-black">{c.login}</span>
+                              <span className="text-gray-500">({c.contributions})</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      <p className="mt-2 text-[10px] text-gray-400">
+                        Cached for 20 min to reduce GitHub API usage.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
