@@ -120,7 +120,19 @@ export default function Profile() {
                   </div>
 
                   <div className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-linear-to-t from-black/80 via-black/40 to-transparent translate-y-full opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                    <div className="flex justify-end p-4">
+                    <div className="flex justify-end gap-2 p-4">
+                      <Link
+                        href={`/profile/edit-project/${project._id}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition-colors hover:bg-white"
+                        aria-label="Edit project"
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </Link>
                       <button
                         type="button"
                         onClick={(e) => {

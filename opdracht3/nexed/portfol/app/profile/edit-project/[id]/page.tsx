@@ -35,13 +35,10 @@ export default function EditProject() {
   const [description, setDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
   const [platforms, setPlatforms] = useState<string[]>([]);
-  const [mainImage, setMainImage] = useState<File | null>(null);
+  const [mainImageUrl, setMainImageUrl] = useState("");
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
-  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
-  const [existingMainImage, setExistingMainImage] = useState<string | null>(null);
-  const [existingAdditionalImages, setExistingAdditionalImages] = useState<string[]>([]);
-  const [keptExistingImages, setKeptExistingImages] = useState<string[]>([]);
   
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -65,18 +62,18 @@ export default function EditProject() {
           setGithubRepo(projectData.githubRepo || "");
           setPlatforms(projectData.platforms || []);
           
-          // Handle images
+          // Handle images - pre-fill with existing URLs
           const allImages = projectData.images && projectData.images.length > 0 
             ? projectData.images 
             : (projectData.image ? [projectData.image] : []);
           
           if (allImages.length > 0) {
-            setExistingMainImage(allImages[0]);
-            setKeptExistingImages([allImages[0]]);
+            setMainImageUrl(allImages[0]);
+            setMainImagePreview(allImages[0]);
             if (allImages.length > 1) {
               const additional = allImages.slice(1);
-              setExistingAdditionalImages(additional);
-              setKeptExistingImages([allImages[0], ...additional]);
+              setAdditionalImageUrls(additional);
+              setAdditionalImagePreviews(additional);
             }
           }
           
@@ -151,113 +148,45 @@ export default function EditProject() {
     [setPlatforms]
   );
 
-  const handleMainImageChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.target;
-    const file = input.files?.[0];
-    if (!file) {
-      return;
+  // Update preview when main image URL changes
+  useEffect(() => {
+    if (mainImageUrl.trim()) {
+      setMainImagePreview(mainImageUrl);
+    } else {
+      setMainImagePreview(null);
     }
+  }, [mainImageUrl]);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setMainImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-    setMainImage(file);
-    
-    // When uploading a new main image, remove the old one from kept images
-    if (existingMainImage) {
-      setKeptExistingImages((prev) => prev.filter((img) => img !== existingMainImage));
-    }
-    
-    input.value = "";
-  }, [existingMainImage]);
+  // Update previews when additional image URLs change
+  useEffect(() => {
+    setAdditionalImagePreviews(additionalImageUrls);
+  }, [additionalImageUrls]);
+
+  const handleMainImageUrlChange = useCallback((url: string) => {
+    setMainImageUrl(url);
+  }, []);
 
   const handleRemoveMainImage = useCallback(() => {
-    if (mainImagePreview) {
-      // Removing a newly uploaded main image - restore the existing one
-      setMainImage(null);
-      setMainImagePreview(null);
-      if (existingMainImage) {
-        setKeptExistingImages((prev) => {
-          if (!prev.includes(existingMainImage)) {
-            return [existingMainImage, ...prev];
-          }
-          return prev;
-        });
-      }
-    } else if (existingMainImage) {
-      // Removing the existing main image
-      setExistingMainImage(null);
-      setKeptExistingImages((prev) => prev.filter((img) => img !== existingMainImage));
+    setMainImageUrl("");
+    setMainImagePreview(null);
+  }, []);
+
+  const handleAdditionalImageUrlAdd = useCallback((url: string) => {
+    const maxAdditionalImages = 4;
+    if (additionalImageUrls.length < maxAdditionalImages) {
+      setAdditionalImageUrls((prev) => [...prev, url]);
     }
-  }, [mainImagePreview, existingMainImage]);
-
-  const handleAdditionalImagesChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const input = event.target;
-      const files = input.files;
-      if (!files || files.length === 0) {
-        return;
-      }
-
-      const maxAdditionalImages = 4;
-      const availableSlots = maxAdditionalImages - (additionalImages.length + existingAdditionalImages.length);
-      if (availableSlots <= 0) {
-        input.value = "";
-        return;
-      }
-
-      const filesToAdd = Array.from(files).slice(0, availableSlots);
-
-      const previewPromises = filesToAdd.map(
-        (file) =>
-          new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              resolve(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-          })
-      );
-
-      Promise.all(previewPromises).then((previews) => {
-        setAdditionalImages((prev) => [...prev, ...filesToAdd]);
-        setAdditionalImagePreviews((prev) => [...prev, ...previews]);
-      });
-
-      input.value = "";
-    },
-    [additionalImages.length, existingAdditionalImages.length]
-  );
+  }, [additionalImageUrls.length]);
 
   const handleRemoveAdditionalImage = useCallback((index: number) => {
-    // The index passed is the visual index (0-based from the component)
-    // We need to determine if it's an existing or new image
-    if (index < existingAdditionalImages.length) {
-      // Remove existing image
-      const imageToRemove = existingAdditionalImages[index];
-      setExistingAdditionalImages((prev) => prev.filter((_, i) => i !== index));
-      setKeptExistingImages((prev) => prev.filter((img) => img !== imageToRemove));
-    } else {
-      // Remove new image (adjust index for new images array)
-      const newIndex = index - existingAdditionalImages.length;
-      setAdditionalImages((prev) => prev.filter((_, i) => i !== newIndex));
-      setAdditionalImagePreviews((prev) => prev.filter((_, i) => i !== newIndex));
-    }
-  }, [existingAdditionalImages]);
+    setAdditionalImageUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!name || !description || !githubRepo || platforms.length === 0) {
-      setMessage("Please fill in all required fields");
-      return;
-    }
-
-    // Check if we have at least one image (existing or new)
-    if (!mainImage && !existingMainImage) {
-      setMessage("Please provide a main image");
+    if (!name || !description || !githubRepo || platforms.length === 0 || !mainImageUrl.trim()) {
+      setMessage("Please fill in all required fields (main image URL is required)");
       return;
     }
 
@@ -265,37 +194,36 @@ export default function EditProject() {
     setMessage("");
 
     try {
-      const formData = new FormData();
-      formData.append("id", projectId);
-      formData.append("name", name);
-      formData.append("description", description);
-      formData.append("githubRepo", githubRepo);
-      formData.append("platforms", platforms.join(","));
-      
-      // Add main image if new one is provided
-      if (mainImage) {
-        formData.append("mainImage", mainImage);
-      }
-      
-      // Add additional images
-      additionalImages.forEach((image, index) => {
-        formData.append(`additionalImage_${index}`, image);
-      });
-      formData.append("additionalImageCount", additionalImages.length.toString());
-      
-      // Ensure existing main image is included if we're not uploading a new one
-      const finalKeptImages = [...keptExistingImages];
-      if (!mainImage && existingMainImage && !finalKeptImages.includes(existingMainImage)) {
-        finalKeptImages.unshift(existingMainImage);
-      }
-      
-      // Add existing images to keep
-      formData.append("existingImages", finalKeptImages.join(","));
-
       const response = await fetch("/api/projects", {
         method: "PUT",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: projectId,
+          name,
+          description,
+          githubRepo,
+          platforms: platforms.join(","),
+          mainImageUrl: mainImageUrl.trim(),
+          additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
+        }),
       });
+
+      // Check if response is ok
+      if (!response.ok) {
+        const text = await response.text();
+        let errorMessage = "Failed to update project";
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = text || `Server error: ${response.status}`;
+        }
+        setMessage(`Error: ${errorMessage}`);
+        setSubmitting(false);
+        return;
+      }
 
       const data = await response.json();
 
@@ -305,12 +233,12 @@ export default function EditProject() {
           router.push("/profile");
         }, 1500);
       } else {
-        setMessage(`Error: ${data.error}`);
+        setMessage(`Error: ${data.error || "Unknown error"}`);
         setSubmitting(false);
       }
     } catch (error) {
       console.error("Error updating project:", error);
-      setMessage("An error occurred while updating the project");
+      setMessage(`Error: ${error instanceof Error ? error.message : "An error occurred while updating the project"}`);
       setSubmitting(false);
     }
   };
@@ -398,15 +326,15 @@ export default function EditProject() {
             />
 
             <ProjectImageSection
+              mainImageUrl={mainImageUrl}
               mainImagePreview={mainImagePreview}
+              additionalImageUrls={additionalImageUrls}
               additionalImagePreviews={additionalImagePreviews}
               loading={submitting}
-              onMainImageChange={handleMainImageChange}
-              onAdditionalImagesChange={handleAdditionalImagesChange}
+              onMainImageUrlChange={handleMainImageUrlChange}
+              onAdditionalImageUrlAdd={handleAdditionalImageUrlAdd}
               onRemoveMainImage={handleRemoveMainImage}
               onRemoveAdditionalImage={handleRemoveAdditionalImage}
-              existingMainImage={existingMainImage}
-              existingAdditionalImages={existingAdditionalImages}
             />
 
             {message && (
@@ -439,7 +367,7 @@ export default function EditProject() {
             <div className="flex gap-4 pt-2">
               <button
                 type="submit"
-                disabled={submitting || platforms.length === 0 || (!mainImage && !existingMainImage)}
+                disabled={submitting || platforms.length === 0 || !mainImageUrl.trim()}
                 className="flex-1 bg-accent text-white rounded-full px-8 py-4 hover:bg-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {submitting ? (
