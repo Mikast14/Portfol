@@ -8,6 +8,10 @@ import BasicInfoSection from "../../add-project/components/BasicInfoSection";
 import GitHubSection from "../../add-project/components/GitHubSection";
 import PlatformsSection from "../../add-project/components/PlatformsSection";
 import ProjectImageSection from "../../add-project/components/ProjectImageSection";
+import GitHubDisplaySettingsSection, {
+  GitHubDisplaySettings,
+  DEFAULT_GITHUB_SETTINGS,
+} from "../../add-project/components/GitHubDisplaySettingsSection";
 import { GitHubRepo } from "../../add-project/types";
 
 interface Project {
@@ -18,6 +22,7 @@ interface Project {
   platforms: string[];
   image?: string;
   images?: string[];
+  githubDisplaySettings?: GitHubDisplaySettings;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +44,7 @@ export default function EditProject() {
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
+  const [githubDisplaySettings, setGithubDisplaySettings] = useState<GitHubDisplaySettings>(DEFAULT_GITHUB_SETTINGS);
   
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -75,6 +81,11 @@ export default function EditProject() {
               setAdditionalImageUrls(additional);
               setAdditionalImagePreviews(additional);
             }
+          }
+          
+          // Pre-fill GitHub display settings
+          if (projectData.githubDisplaySettings) {
+            setGithubDisplaySettings({ ...DEFAULT_GITHUB_SETTINGS, ...projectData.githubDisplaySettings });
           }
           
           // Extract GitHub username from repo URL
@@ -207,6 +218,7 @@ export default function EditProject() {
           platforms: platforms.join(","),
           mainImageUrl: mainImageUrl.trim(),
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
+          githubDisplaySettings,
         }),
       });
 
@@ -335,6 +347,14 @@ export default function EditProject() {
               onAdditionalImageUrlAdd={handleAdditionalImageUrlAdd}
               onRemoveMainImage={handleRemoveMainImage}
               onRemoveAdditionalImage={handleRemoveAdditionalImage}
+            />
+
+            <GitHubDisplaySettingsSection
+              settings={githubDisplaySettings}
+              onSettingsChange={(newSettings) =>
+                setGithubDisplaySettings((prev) => ({ ...prev, ...newSettings }))
+              }
+              loading={submitting}
             />
 
             {message && (

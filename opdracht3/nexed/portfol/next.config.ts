@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
         hostname: 'www.shutterstock.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.istockphoto.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'static01.nyt.com',
+        pathname: '/**',
+      },
     ],
   },
 };

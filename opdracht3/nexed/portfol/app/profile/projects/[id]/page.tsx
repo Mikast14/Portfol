@@ -6,6 +6,25 @@ import Navbar from "../../../Navbar";
 import Link from "next/link";
 import Image from "next/image";
 
+type ActiveStatusMode = "auto" | "active" | "inactive" | "hide";
+type DisplayMode = "auto" | "hide";
+
+interface GitHubDisplaySettings {
+  activeStatus: ActiveStatusMode;
+  contributors: DisplayMode;
+  stars: DisplayMode;
+  forks: DisplayMode;
+  language: DisplayMode;
+}
+
+const DEFAULT_SETTINGS: GitHubDisplaySettings = {
+  activeStatus: "auto",
+  contributors: "auto",
+  stars: "auto",
+  forks: "auto",
+  language: "auto",
+};
+
 interface Project {
   _id: string;
   name: string;
@@ -14,6 +33,7 @@ interface Project {
   platforms: string[];
   image?: string;
   images?: string[];
+  githubDisplaySettings?: GitHubDisplaySettings;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,6 +65,11 @@ const platformIcons: Record<string, React.ReactElement> = {
 export default function ProjectDetail() {
   const params = useParams();
   const [project, setProject] = useState<Project | null>(null);
+  
+  // Get settings from project or use defaults
+  const settings: GitHubDisplaySettings = project?.githubDisplaySettings 
+    ? { ...DEFAULT_SETTINGS, ...project.githubDisplaySettings }
+    : DEFAULT_SETTINGS;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -177,6 +202,12 @@ export default function ProjectDetail() {
   };
 
   useEffect(() => {
+    // Only fetch contributors if settings allow it
+    if (settings.contributors !== "auto") {
+      setContributors([]);
+      return;
+    }
+
     if (!project?.githubRepo) return;
     const parsed = parseRepo(project.githubRepo);
     if (!parsed) return;
@@ -228,10 +259,22 @@ export default function ProjectDetail() {
     };
 
     fetchContributors();
-  }, [project?.githubRepo]);
+  }, [project?.githubRepo, settings.contributors]);
 
   // NEW: fetch repo metadata (stars, forks, language, active status)
+  // Only fetch if any of the settings require it
   useEffect(() => {
+    const needsRepoInfo = 
+      settings.activeStatus === "auto" ||
+      settings.stars === "auto" ||
+      settings.forks === "auto" ||
+      settings.language === "auto";
+
+    if (!needsRepoInfo) {
+      setRepoInfo(null);
+      return;
+    }
+
     if (!project?.githubRepo) return;
     const parsed = parseRepo(project.githubRepo);
     if (!parsed) return;
@@ -278,7 +321,7 @@ export default function ProjectDetail() {
         setRepoLoading(false);
       }
     })();
-  }, [project?.githubRepo]);
+  }, [project?.githubRepo, settings.activeStatus, settings.stars, settings.forks, settings.language]);
 
   if (loading) {
     return (
@@ -486,12 +529,23 @@ export default function ProjectDetail() {
                     </a>
 
                     {/* Tags */}
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                      {repoLoading && <span className="text-gray-500">Loading repository info...</span>}
-                      {repoError && <span className="text-red-500">{repoError}</span>}
-                      {!!repoInfo && (
-                        <>
-                          {(() => {
+                    {(settings.activeStatus !== "hide" ||
+                      settings.language === "auto" ||
+                      settings.stars === "auto" ||
+                      settings.forks === "auto") && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                        {(settings.activeStatus === "auto" ||
+                          settings.stars === "auto" ||
+                          settings.forks === "auto" ||
+                          settings.language === "auto") && (
+                          <>
+                            {repoLoading && <span className="text-gray-500">Loading repository info...</span>}
+                            {repoError && <span className="text-red-500">{repoError}</span>}
+                          </>
+                        )}
+                        {/* Active/Inactive Status */}
+                        {settings.activeStatus !== "hide" && (() => {
+                          if (settings.activeStatus === "auto" && repoInfo) {
                             const active =
                               Date.now() - new Date(repoInfo.updated_at).getTime() <
                               14 * 24 * 60 * 60 * 1000;
@@ -503,60 +557,82 @@ export default function ProjectDetail() {
                                 {active ? "Active" : "Inactive"}
                               </span>
                             );
-                          })()}
-                          {repoInfo.language && (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
-                              {repoInfo.language}
-                            </span>
-                          )}
+                          } else if (settings.activeStatus === "active") {
+                            return (
+                              <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">
+                                Active
+                              </span>
+                            );
+                          } else if (settings.activeStatus === "inactive") {
+                            return (
+                              <span className="px-2 py-1 rounded-full bg-red-100 text-red-800">
+                                Inactive
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                        {/* Language */}
+                        {settings.language === "auto" && repoInfo?.language && (
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                            {repoInfo.language}
+                          </span>
+                        )}
+                        {/* Stars */}
+                        {settings.stars === "auto" && repoInfo && (
                           <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
                             ⭐ {repoInfo.stargazers_count}
                           </span>
+                        )}
+                        {/* Forks */}
+                        {settings.forks === "auto" && repoInfo && (
                           <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
                             🔄 {repoInfo.forks_count}
                           </span>
-                        </>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Contributors */}
-                    <div className="mt-4">
-                      <div className="text-accent font-medium mb-2 text-sm">TOP CONTRIBUTORS</div>
-                      {contributorsLoading && (
-                        <p className="text-xs text-gray-500">Loading contributors...</p>
-                      )}
-                      {contributorsError && (
-                        <p className="text-xs text-red-500">{contributorsError}</p>
-                      )}
-                      {!contributorsLoading && !contributorsError && contributors.length === 0 && (
-                        <p className="text-xs text-gray-400">No contributors found.</p>
-                      )}
-                      {contributors.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {contributors.map(c => (
-                            <a
-                              key={c.id}
-                              href={c.html_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-xs hover:bg-gray-200 transition"
-                              title={`${c.login} (${c.contributions} contributions)`}
-                            >
-                              <img
-                                src={c.avatar_url}
-                                alt={c.login}
-                                className="w-5 h-5 rounded-full object-cover"
-                              />
-                              <span className="text-black">{c.login}</span>
-                              <span className="text-gray-500">({c.contributions})</span>
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                      <p className="mt-2 text-[10px] text-gray-400">
-                        Cached for 20 min to reduce GitHub API usage.
-                      </p>
-                    </div>
+                    {settings.contributors === "auto" && (
+                      <div className="mt-4">
+                        <div className="text-accent font-medium mb-2 text-sm">TOP CONTRIBUTORS</div>
+                        {contributorsLoading && (
+                          <p className="text-xs text-gray-500">Loading contributors...</p>
+                        )}
+                        {contributorsError && (
+                          <p className="text-xs text-red-500">{contributorsError}</p>
+                        )}
+                        {!contributorsLoading && !contributorsError && contributors.length === 0 && (
+                          <p className="text-xs text-gray-400">No contributors found.</p>
+                        )}
+                        {contributors.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {contributors.map(c => (
+                              <a
+                                key={c.id}
+                                href={c.html_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-xs hover:bg-gray-200 transition"
+                                title={`${c.login} (${c.contributions} contributions)`}
+                              >
+                                <img
+                                  src={c.avatar_url}
+                                  alt={c.login}
+                                  className="w-5 h-5 rounded-full object-cover"
+                                />
+                                <span className="text-black">{c.login}</span>
+                                <span className="text-gray-500">({c.contributions})</span>
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                        <p className="mt-2 text-[10px] text-gray-400">
+                          Cached for 20 min to reduce GitHub API usage.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
