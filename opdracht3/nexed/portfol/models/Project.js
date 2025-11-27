@@ -1,5 +1,36 @@
 import mongoose from "mongoose";
 
+const githubDisplaySettingsSchema = new mongoose.Schema(
+  {
+    activeStatus: {
+      type: String,
+      enum: ["auto", "active", "inactive", "hide"],
+      default: "auto",
+    },
+    contributors: {
+      type: String,
+      enum: ["auto", "hide"],
+      default: "auto",
+    },
+    stars: {
+      type: String,
+      enum: ["auto", "hide"],
+      default: "auto",
+    },
+    forks: {
+      type: String,
+      enum: ["auto", "hide"],
+      default: "auto",
+    },
+    language: {
+      type: String,
+      enum: ["auto", "hide"],
+      default: "auto",
+    },
+  },
+  { _id: false }
+);
+
 const projectSchema = new mongoose.Schema(
   {
     name: {
@@ -26,6 +57,11 @@ const projectSchema = new mongoose.Schema(
     images: {
       type: [String], // Array of paths to image files
       required: false,
+    },
+    githubDisplaySettings: {
+      type: githubDisplaySettingsSchema,
+      required: false,
+      default: undefined,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,

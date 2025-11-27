@@ -8,6 +8,10 @@ import BasicInfoSection from "./components/BasicInfoSection";
 import GitHubSection from "./components/GitHubSection";
 import PlatformsSection from "./components/PlatformsSection";
 import ProjectImageSection from "./components/ProjectImageSection";
+import GitHubDisplaySettingsSection, {
+  GitHubDisplaySettings,
+  DEFAULT_GITHUB_SETTINGS,
+} from "./components/GitHubDisplaySettingsSection";
 import { GitHubRepo } from "./types";
 
 export default function AddProject() {
@@ -25,6 +29,7 @@ export default function AddProject() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [githubUsername, setGithubUsername] = useState("mikast14");
+  const [githubDisplaySettings, setGithubDisplaySettings] = useState<GitHubDisplaySettings>(DEFAULT_GITHUB_SETTINGS);
 
   useEffect(() => {
     const fetchRepos = async () => {
@@ -131,6 +136,7 @@ export default function AddProject() {
           platforms: platforms.join(","),
           mainImageUrl: mainImageUrl.trim(),
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
+          githubDisplaySettings,
         }),
       });
 
@@ -206,6 +212,14 @@ export default function AddProject() {
               onAdditionalImageUrlAdd={handleAdditionalImageUrlAdd}
               onRemoveMainImage={handleRemoveMainImage}
               onRemoveAdditionalImage={handleRemoveAdditionalImage}
+            />
+
+            <GitHubDisplaySettingsSection
+              settings={githubDisplaySettings}
+              onSettingsChange={(newSettings) =>
+                setGithubDisplaySettings((prev) => ({ ...prev, ...newSettings }))
+              }
+              loading={loading}
             />
 
             {message && (

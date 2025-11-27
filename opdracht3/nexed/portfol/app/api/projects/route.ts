@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("JSON body parsed successfully");
     
-    const { name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [] } = body;
+    const { name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [], githubDisplaySettings = {} } = body;
 
     // Validate required fields
     if (!name || !description || !githubRepo || !platformsString || !mainImageUrl) {
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     console.log(`Main image URL: ${primaryImagePath}`);
     console.log(`All image URLs:`, JSON.stringify(allImagePaths));
 
-    // Create project with image URLs
+    // Create project with image URLs and GitHub display settings
     const project = new Project({
       name,
       description,
@@ -77,6 +77,13 @@ export async function POST(request: Request) {
       platforms,
       image: primaryImagePath, // Main image for backward compatibility
       images: allImagePaths, // All images: main first, then additional
+      githubDisplaySettings: {
+        activeStatus: githubDisplaySettings.activeStatus || "auto",
+        contributors: githubDisplaySettings.contributors || "auto",
+        stars: githubDisplaySettings.stars || "auto",
+        forks: githubDisplaySettings.forks || "auto",
+        language: githubDisplaySettings.language || "auto",
+      },
     });
 
     // Save the project
@@ -121,7 +128,7 @@ export async function PUT(request: Request) {
     const body = await request.json();
     console.log("JSON body parsed successfully");
     
-    const { id, name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [] } = body;
+    const { id, name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [], githubDisplaySettings = {} } = body;
 
     // Validate required fields
     if (!id || !name || !description || !githubRepo || !platformsString || !mainImageUrl) {
@@ -190,6 +197,13 @@ export async function PUT(request: Request) {
     project.platforms = platforms;
     project.image = primaryImagePath; // Main image for backward compatibility
     project.images = allImagePaths; // All images: main first, then additional
+    project.githubDisplaySettings = {
+      activeStatus: githubDisplaySettings.activeStatus || project.githubDisplaySettings?.activeStatus || "auto",
+      contributors: githubDisplaySettings.contributors || project.githubDisplaySettings?.contributors || "auto",
+      stars: githubDisplaySettings.stars || project.githubDisplaySettings?.stars || "auto",
+      forks: githubDisplaySettings.forks || project.githubDisplaySettings?.forks || "auto",
+      language: githubDisplaySettings.language || project.githubDisplaySettings?.language || "auto",
+    };
     project.updatedAt = new Date();
 
     await project.save();
