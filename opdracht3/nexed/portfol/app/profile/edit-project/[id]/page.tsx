@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Navbar from "../../../Navbar";
 import BasicInfoSection from "../../add-project/components/BasicInfoSection";
@@ -68,19 +68,15 @@ export default function EditProject() {
           setGithubRepo(projectData.githubRepo || "");
           setPlatforms(projectData.platforms || []);
           
-          // Handle images - pre-fill with existing URLs
-          const allImages = projectData.images && projectData.images.length > 0 
-            ? projectData.images 
-            : (projectData.image ? [projectData.image] : []);
+          // Handle images - logo is separate from subimages
+          if (projectData.image) {
+            setMainImageUrl(projectData.image);
+            setMainImagePreview(projectData.image);
+          }
           
-          if (allImages.length > 0) {
-            setMainImageUrl(allImages[0]);
-            setMainImagePreview(allImages[0]);
-            if (allImages.length > 1) {
-              const additional = allImages.slice(1);
-              setAdditionalImageUrls(additional);
-              setAdditionalImagePreviews(additional);
-            }
+          if (projectData.images && projectData.images.length > 0) {
+            setAdditionalImageUrls(projectData.images);
+            setAdditionalImagePreviews(projectData.images);
           }
           
           // Pre-fill GitHub display settings
@@ -196,8 +192,8 @@ export default function EditProject() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!name || !description || !githubRepo || platforms.length === 0 || !mainImageUrl.trim()) {
-      setMessage("Please fill in all required fields (main image URL is required)");
+    if (!name || !description || !githubRepo || platforms.length === 0) {
+      setMessage("Please fill in all required fields");
       return;
     }
 
@@ -216,7 +212,7 @@ export default function EditProject() {
           description,
           githubRepo,
           platforms: platforms.join(","),
-          mainImageUrl: mainImageUrl.trim(),
+          mainImageUrl: mainImageUrl.trim() || undefined,
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
           githubDisplaySettings,
         }),
@@ -387,7 +383,7 @@ export default function EditProject() {
             <div className="flex gap-4 pt-2">
               <button
                 type="submit"
-                disabled={submitting || platforms.length === 0 || !mainImageUrl.trim()}
+                disabled={submitting || platforms.length === 0}
                 className="flex-1 bg-accent text-white rounded-full px-8 py-4 hover:bg-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {submitting ? (
