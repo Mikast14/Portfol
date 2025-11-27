@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "../../Navbar";
+import Navbar from "../../components/Navbar";
 
 export default function RegistrationPage() {
     const router = useRouter();

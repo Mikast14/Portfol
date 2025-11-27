@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "../../Navbar";
+import Navbar from "../../components/Navbar";
 import BasicInfoSection from "./components/BasicInfoSection";
 import GitHubSection from "./components/GitHubSection";
 import PlatformsSection from "./components/PlatformsSection";
