@@ -47,25 +47,25 @@ export default function GitHubDisplaySettingsSection({
           </svg>
         </div>
         <div>
-          <h2 className="text-xl font-bold text-foreground">GitHub Display Settings</h2>
-          <p className="text-sm text-gray-600">Configure what GitHub data is displayed on this project</p>
+          <h2 className="text-xl font-bold text-gray-900">GitHub Display Settings</h2>
+          <p className="text-sm text-gray-700">Configure what GitHub data is displayed on this project</p>
         </div>
       </div>
 
       <div className="space-y-6">
         {/* Active/Inactive Status */}
         <div>
-          <label className="block text-sm font-semibold text-foreground mb-2">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
             Active/Inactive Status
           </label>
-          <p className="text-xs text-gray-600 mb-3">
-            Control how the repository activity status is displayed
-          </p>
+              <p className="text-xs text-gray-700 mb-3">
+                Control how the repository activity status is displayed
+              </p>
           <select
             value={settings.activeStatus}
             onChange={(e) => handleActiveStatusChange(e.target.value as ActiveStatusMode)}
             disabled={loading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-base text-black focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-base text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="auto">Auto (via GitHub API)</option>
             <option value="active">Always Show as Active</option>
@@ -78,10 +78,10 @@ export default function GitHubDisplaySettingsSection({
         <div>
           <div className="flex items-center justify-between mb-2">
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1">
+              <label className="block text-sm font-semibold text-gray-900 mb-1">
                 Contributors
               </label>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-700">
                 Show or hide the list of top contributors
               </p>
             </div>
@@ -102,7 +102,7 @@ export default function GitHubDisplaySettingsSection({
         <div>
           <div className="flex items-center justify-between mb-2">
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1">
+              <label className="block text-sm font-semibold text-gray-900 mb-1">
                 Stars
               </label>
               <p className="text-xs text-gray-600">
@@ -126,7 +126,7 @@ export default function GitHubDisplaySettingsSection({
         <div>
           <div className="flex items-center justify-between mb-2">
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1">
+              <label className="block text-sm font-semibold text-gray-900 mb-1">
                 Forks
               </label>
               <p className="text-xs text-gray-600">
@@ -150,7 +150,7 @@ export default function GitHubDisplaySettingsSection({
         <div>
           <div className="flex items-center justify-between mb-2">
             <div>
-              <label className="block text-sm font-semibold text-foreground mb-1">
+              <label className="block text-sm font-semibold text-gray-900 mb-1">
                 Language
               </label>
               <p className="text-xs text-gray-600">

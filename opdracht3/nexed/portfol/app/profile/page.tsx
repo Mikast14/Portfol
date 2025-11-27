@@ -22,6 +22,7 @@ export default function Profile() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -41,20 +42,26 @@ export default function Profile() {
     fetchProjects();
   }, []);
 
-  const handleDelete = async (projectId: string) => {
-    const confirmed = window.confirm("Are you sure you want to delete this project? This action cannot be undone.");
-    if (!confirmed) {
-      return;
-    }
+  const handleDeleteClick = (projectId: string, projectName: string) => {
+    setProjectToDelete({ id: projectId, name: projectName });
+  };
 
-    setDeletingId(projectId);
+  const handleDeleteCancel = () => {
+    setProjectToDelete(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!projectToDelete) return;
+
+    setDeletingId(projectToDelete.id);
     try {
-      const response = await fetch(`/api/projects?id=${projectId}`, {
+      const response = await fetch(`/api/projects?id=${projectToDelete.id}`, {
         method: "DELETE",
       });
       const data = await response.json();
       if (data.ok) {
-        setProjects((prevProjects) => prevProjects.filter((project) => project._id !== projectId));
+        setProjects((prevProjects) => prevProjects.filter((project) => project._id !== projectToDelete.id));
+        setProjectToDelete(null);
       } else {
         console.error("Failed to delete project:", data.error);
       }
@@ -130,10 +137,10 @@ export default function Profile() {
                           e.stopPropagation();
                           router.push(`/profile/edit-project/${project._id}`);
                         }}
-                        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition-colors hover:bg-white"
+                        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition-colors hover:bg-pink-50 group/edit"
                         aria-label="Edit project"
                       >
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg className="h-4 w-4 transition-colors group-hover/edit:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
@@ -142,10 +149,10 @@ export default function Profile() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          handleDelete(project._id);
+                          handleDeleteClick(project._id, project.name);
                         }}
                         disabled={deletingId === project._id}
-                        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+                        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70 group/delete"
                         aria-label="Delete project"
                       >
                         {deletingId === project._id ? (
@@ -154,7 +161,7 @@ export default function Profile() {
                             <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
                           </svg>
                         ) : (
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg className="h-4 w-4 transition-colors group-hover/delete:text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M3 6h18" strokeLinecap="round" />
                             <path d="M8 6v-1a2 2 0 012-2h4a2 2 0 012 2v1" strokeLinecap="round" />
                             <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -174,6 +181,63 @@ export default function Profile() {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {projectToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-large shadow-elevated max-w-md w-full mx-4 animate-in slide-in-from-bottom-4 duration-300">
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-900">Delete Project</h3>
+                  <p className="text-sm text-gray-600 mt-1">This action cannot be undone</p>
+                </div>
+              </div>
+              
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete <span className="font-semibold text-gray-900">&ldquo;{projectToDelete.name}&rdquo;</span>? 
+                This will permanently remove the project and all its data.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleDeleteCancel}
+                  disabled={deletingId === projectToDelete.id}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-900 rounded-full hover:bg-gray-200 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteConfirm}
+                  disabled={deletingId === projectToDelete.id}
+                  className="flex-1 px-6 py-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {deletingId === projectToDelete.id ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span>Delete Project</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

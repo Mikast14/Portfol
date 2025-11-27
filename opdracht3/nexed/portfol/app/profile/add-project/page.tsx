@@ -171,8 +171,8 @@ export default function AddProject() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-foreground">Add New Project</h1>
-                <p className="text-gray-600 mt-1">Showcase your work and share it with the world</p>
+                <h1 className="text-4xl font-bold text-gray-900">Add New Project</h1>
+                <p className="text-gray-700 mt-1">Showcase your work and share it with the world</p>
               </div>
             </div>
           </div>
