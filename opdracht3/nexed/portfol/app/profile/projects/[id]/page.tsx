@@ -38,6 +38,14 @@ interface Project {
   updatedAt: string;
 }
 
+interface GitHubContributor {
+  id: number;
+  login: string;
+  avatar_url: string;
+  html_url: string;
+  contributions: number;
+}
+
 const platformIcons: Record<string, React.ReactElement> = {
   windows: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -99,10 +107,9 @@ export default function ProjectDetail() {
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
   const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Create array of images - use images array if available, otherwise fall back to single image
-  const images = project?.images && project.images.length > 0
-    ? project.images
-    : (project?.image ? [project.image] : []);
+  // Logo is stored separately in image field, subimages are in images array
+  const logo = project?.image || null;
+  const images = project?.images && project.images.length > 0 ? project.images : [];
 
   const parseRepo = (input: string) => {
     const raw = input.trim();
@@ -201,6 +208,20 @@ export default function ProjectDetail() {
     }
   };
 
+  const handlePreviousImage = () => {
+    if (images.length <= 1) return;
+    const newIndex = selectedImageIndex === 0 ? images.length - 1 : selectedImageIndex - 1;
+    setSlideDirection("left");
+    handleImageSelect(newIndex);
+  };
+
+  const handleNextImage = () => {
+    if (images.length <= 1) return;
+    const newIndex = (selectedImageIndex + 1) % images.length;
+    setSlideDirection("right");
+    handleImageSelect(newIndex);
+  };
+
   useEffect(() => {
     // Only fetch contributors if settings allow it
     if (settings.contributors !== "auto") {
@@ -237,7 +258,7 @@ export default function ProjectDetail() {
           throw new Error(`GitHub error ${res.status}`);
         }
         const data = await res.json();
-        const simplified = (Array.isArray(data) ? data : []).map((c: any) => ({
+        const simplified = (Array.isArray(data) ? data : []).map((c: GitHubContributor) => ({
           id: c.id,
           login: c.login,
           avatar_url: c.avatar_url,
@@ -251,8 +272,8 @@ export default function ProjectDetail() {
             JSON.stringify({ timestamp: now, data: simplified })
           );
         } catch { }
-      } catch (e: any) {
-        setContributorsError(e.message || "Failed to load contributors");
+      } catch (e: unknown) {
+        setContributorsError(e instanceof Error ? e.message : "Failed to load contributors");
       } finally {
         setContributorsLoading(false);
       }
@@ -315,8 +336,8 @@ export default function ProjectDetail() {
         try {
           localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: simplified }));
         } catch { }
-      } catch (e: any) {
-        setRepoError(e.message || "Failed to load repository info");
+      } catch (e: unknown) {
+        setRepoError(e instanceof Error ? e.message : "Failed to load repository info");
       } finally {
         setRepoLoading(false);
       }
@@ -381,7 +402,7 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          {/* Two Column Layout */}
+          {/* Two Column Layout - Steam Style */}
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
             {/* Left Column - Media Player */}
             <div className="space-y-4">
@@ -412,6 +433,29 @@ export default function ProjectDetail() {
                           </div>
                         ))}
                       </div>
+                      {/* Navigation Arrows */}
+                      {images.length > 1 && (
+                        <>
+                          <button
+                            onClick={handlePreviousImage}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg text-gray-700 p-3 rounded-full z-10 transition-all hover:scale-110"
+                            aria-label="Previous image"
+                          >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={handleNextImage}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg text-gray-700 p-3 rounded-full z-10 transition-all hover:scale-110"
+                            aria-label="Next image"
+                          >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-gray-200">
@@ -471,27 +515,36 @@ export default function ProjectDetail() {
               )}
             </div>
 
-            {/* Right Column - Information Panel */}
-            <div className="space-y-6">
-              {/* Main Info Card */}
-              <div className="bg-white rounded-large p-6 shadow-elevated">
+            {/* Right Column - Information Panel (Single Card) */}
+            <div className="bg-white rounded-large shadow-elevated p-6">
+              <div className="space-y-6">
+                {/* Logo Above Title */}
+                {logo && (
+                  <div className="relative w-full max-w-32 mx-auto bg-gray-200 rounded-base overflow-hidden" style={{ aspectRatio: "1 / 1" }}>
+                    <Image
+                      src={logo}
+                      alt={`${project.name} logo`}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                )}
+
                 {/* Title */}
-                <div className="mb-4">
-                  <h1 className="text-3xl font-bold text-black mb-2">{project.name}</h1>
+                <div>
+                  <h1 className="text-3xl font-bold text-black mb-4">{project.name}</h1>
                 </div>
 
                 {/* Description */}
-                <div className="mb-6">
-                  <p className="text-gray-600 leading-relaxed">{project.description}</p>
+                <div>
+                  <p className="text-gray-600 leading-relaxed text-sm">{project.description}</p>
                 </div>
-              </div>
 
-              {/* Metadata Card */}
-              <div className="bg-white rounded-large p-6 shadow-elevated">
-                <div className="space-y-4">
+                {/* Metadata Section */}
+                <div className="space-y-4 pt-4 border-t border-gray-200">
                   <div>
-                    <div className="text-accent font-medium mb-2 text-sm">RELEASE DATE</div>
-                    <div className="text-gray-600">
+                    <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Release Date</div>
+                    <div className="text-gray-700 text-sm">
                       {new Date(project.createdAt).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "short",
@@ -500,12 +553,12 @@ export default function ProjectDetail() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-accent font-medium mb-2 text-sm">PLATFORMS</div>
+                    <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Platforms</div>
                     <div className="flex flex-wrap gap-2">
                       {project.platforms.map((platform) => (
                         <div
                           key={platform}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs capitalize"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs capitalize transition-colors"
                         >
                           {platformIcons[platform] || (
                             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
@@ -517,23 +570,15 @@ export default function ProjectDetail() {
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <div className="text-accent font-medium mb-2 text-sm">GITHUB REPOSITORY</div>
-                    <a
-                      href={githubUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-accent hover:text-primary-hover transition-colors break-all text-sm"
-                    >
-                      {project.githubRepo}
-                    </a>
-
-                    {/* Tags */}
-                    {(settings.activeStatus !== "hide" ||
-                      settings.language === "auto" ||
-                      settings.stars === "auto" ||
-                      settings.forks === "auto") && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                  
+                  {/* GitHub Stats */}
+                  {(settings.activeStatus !== "hide" ||
+                    settings.language === "auto" ||
+                    settings.stars === "auto" ||
+                    settings.forks === "auto") && (
+                    <div>
+                      <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">GitHub Stats</div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
                         {(settings.activeStatus === "auto" ||
                           settings.stars === "auto" ||
                           settings.forks === "auto" ||
@@ -591,55 +636,53 @@ export default function ProjectDetail() {
                           </span>
                         )}
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {/* Contributors */}
-                    {settings.contributors === "auto" && (
-                      <div className="mt-4">
-                        <div className="text-accent font-medium mb-2 text-sm">TOP CONTRIBUTORS</div>
-                        {contributorsLoading && (
-                          <p className="text-xs text-gray-500">Loading contributors...</p>
-                        )}
-                        {contributorsError && (
-                          <p className="text-xs text-red-500">{contributorsError}</p>
-                        )}
-                        {!contributorsLoading && !contributorsError && contributors.length === 0 && (
-                          <p className="text-xs text-gray-400">No contributors found.</p>
-                        )}
-                        {contributors.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {contributors.map(c => (
-                              <a
-                                key={c.id}
-                                href={c.html_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-xs hover:bg-gray-200 transition"
-                                title={`${c.login} (${c.contributions} contributions)`}
-                              >
-                                <img
-                                  src={c.avatar_url}
-                                  alt={c.login}
-                                  className="w-5 h-5 rounded-full object-cover"
-                                />
-                                <span className="text-black">{c.login}</span>
-                                <span className="text-gray-500">({c.contributions})</span>
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                        <p className="mt-2 text-[10px] text-gray-400">
-                          Cached for 20 min to reduce GitHub API usage.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  {/* Contributors */}
+                  {settings.contributors === "auto" && (
+                    <div>
+                      <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Top Contributors</div>
+                      {contributorsLoading && (
+                        <p className="text-xs text-gray-500">Loading contributors...</p>
+                      )}
+                      {contributorsError && (
+                        <p className="text-xs text-red-500">{contributorsError}</p>
+                      )}
+                      {!contributorsLoading && !contributorsError && contributors.length === 0 && (
+                        <p className="text-xs text-gray-400">No contributors found.</p>
+                      )}
+                      {contributors.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {contributors.map(c => (
+                            <a
+                              key={c.id}
+                              href={c.html_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs transition-colors"
+                              title={`${c.login} (${c.contributions} contributions)`}
+                            >
+                              <img
+                                src={c.avatar_url}
+                                alt={c.login}
+                                className="w-5 h-5 rounded-full object-cover"
+                              />
+                              <span className="text-black">{c.login}</span>
+                              <span className="text-gray-500">({c.contributions})</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      <p className="mt-2 text-[10px] text-gray-400">
+                        Updated every 20 minutes.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="bg-white rounded-large p-6 shadow-elevated">
-                <div className="flex flex-col gap-3">
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
                   <a
                     href={githubUrl}
                     target="_blank"

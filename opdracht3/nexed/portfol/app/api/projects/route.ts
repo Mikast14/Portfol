@@ -18,22 +18,24 @@ export async function POST(request: Request) {
     
     const { name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [], githubDisplaySettings = {} } = body;
 
-    // Validate required fields
-    if (!name || !description || !githubRepo || !platformsString || !mainImageUrl) {
+    // Validate required fields (logo is now optional)
+    if (!name || !description || !githubRepo || !platformsString) {
       return NextResponse.json(
-        { ok: false, error: "Name, description, GitHub repo, platforms, and main image URL are required" },
+        { ok: false, error: "Name, description, GitHub repo, and platforms are required" },
         { status: 400 }
       );
     }
 
-    // Validate main image URL format
-    try {
-      new URL(mainImageUrl);
-    } catch {
-      return NextResponse.json(
-        { ok: false, error: "Main image URL is not a valid URL" },
-        { status: 400 }
-      );
+    // Validate main image URL format (if provided)
+    if (mainImageUrl) {
+      try {
+        new URL(mainImageUrl);
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: "Main image URL is not a valid URL" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate additional image URLs
@@ -62,12 +64,13 @@ export async function POST(request: Request) {
     }
 
     // Use URLs directly - no file processing needed
-    const primaryImagePath = mainImageUrl;
-    const allImagePaths: string[] = [primaryImagePath, ...additionalImageUrls];
+    // Logo is stored separately in image field, subimages go in images array
+    const logoUrl = mainImageUrl || undefined;
+    const subImagePaths: string[] = additionalImageUrls.filter(url => url.trim());
 
-    console.log(`Saving project with main image URL and ${additionalImageUrls.length} additional image URLs`);
-    console.log(`Main image URL: ${primaryImagePath}`);
-    console.log(`All image URLs:`, JSON.stringify(allImagePaths));
+    console.log(`Saving project with logo URL and ${subImagePaths.length} subimage URLs`);
+    console.log(`Logo URL: ${logoUrl || 'none'}`);
+    console.log(`Subimage URLs:`, JSON.stringify(subImagePaths));
 
     // Create project with image URLs and GitHub display settings
     const project = new Project({
@@ -75,8 +78,8 @@ export async function POST(request: Request) {
       description,
       githubRepo,
       platforms,
-      image: primaryImagePath, // Main image for backward compatibility
-      images: allImagePaths, // All images: main first, then additional
+      image: logoUrl, // Logo (optional)
+      images: subImagePaths, // Only subimages (not including logo)
       githubDisplaySettings: {
         activeStatus: githubDisplaySettings.activeStatus || "auto",
         contributors: githubDisplaySettings.contributors || "auto",
@@ -92,7 +95,7 @@ export async function POST(request: Request) {
     // Explicitly update the images field using updateOne to ensure it's saved
     await Project.updateOne(
       { _id: project._id },
-      { $set: { images: allImagePaths } }
+      { $set: { images: subImagePaths } }
     );
     
     // Fetch the project again to verify what was actually saved
@@ -130,10 +133,10 @@ export async function PUT(request: Request) {
     
     const { id, name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [], githubDisplaySettings = {} } = body;
 
-    // Validate required fields
-    if (!id || !name || !description || !githubRepo || !platformsString || !mainImageUrl) {
+    // Validate required fields (logo is now optional)
+    if (!id || !name || !description || !githubRepo || !platformsString) {
       return NextResponse.json(
-        { ok: false, error: "ID, name, description, GitHub repo, platforms, and main image URL are required" },
+        { ok: false, error: "ID, name, description, GitHub repo, and platforms are required" },
         { status: 400 }
       );
     }
@@ -147,14 +150,16 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Validate main image URL format
-    try {
-      new URL(mainImageUrl);
-    } catch {
-      return NextResponse.json(
-        { ok: false, error: "Main image URL is not a valid URL" },
-        { status: 400 }
-      );
+    // Validate main image URL format (if provided)
+    if (mainImageUrl) {
+      try {
+        new URL(mainImageUrl);
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: "Main image URL is not a valid URL" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate additional image URLs
@@ -183,20 +188,21 @@ export async function PUT(request: Request) {
     }
 
     // Use URLs directly - no file processing needed
-    const primaryImagePath = mainImageUrl;
-    const allImagePaths: string[] = [primaryImagePath, ...additionalImageUrls];
+    // Logo is stored separately in image field, subimages go in images array
+    const logoUrl = mainImageUrl || undefined;
+    const subImagePaths: string[] = additionalImageUrls.filter(url => url.trim());
 
-    console.log(`Updating project with main image URL and ${additionalImageUrls.length} additional image URLs`);
-    console.log(`Main image URL: ${primaryImagePath}`);
-    console.log(`All image URLs:`, JSON.stringify(allImagePaths));
+    console.log(`Updating project with logo URL and ${subImagePaths.length} subimage URLs`);
+    console.log(`Logo URL: ${logoUrl || 'none'}`);
+    console.log(`Subimage URLs:`, JSON.stringify(subImagePaths));
 
     // Update the project
     project.name = name;
     project.description = description;
     project.githubRepo = githubRepo;
     project.platforms = platforms;
-    project.image = primaryImagePath; // Main image for backward compatibility
-    project.images = allImagePaths; // All images: main first, then additional
+    project.image = logoUrl; // Logo (optional)
+    project.images = subImagePaths; // Only subimages (not including logo)
     project.githubDisplaySettings = {
       activeStatus: githubDisplaySettings.activeStatus || project.githubDisplaySettings?.activeStatus || "auto",
       contributors: githubDisplaySettings.contributors || project.githubDisplaySettings?.contributors || "auto",

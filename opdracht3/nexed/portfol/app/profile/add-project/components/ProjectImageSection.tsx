@@ -26,7 +26,7 @@ export default function ProjectImageSection({
   onRemoveMainImage,
   onRemoveAdditionalImage,
 }: ProjectImageSectionProps) {
-  const maxAdditionalImages = 4;
+  const maxAdditionalImages = 10;
   const canAddMore = additionalImagePreviews.length < maxAdditionalImages;
   const [newAdditionalImageUrl, setNewAdditionalImageUrl] = useState("");
 
@@ -62,14 +62,14 @@ export default function ProjectImageSection({
           Project Images
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Paste image URLs for the main image (required) and up to {maxAdditionalImages} additional images
+          Add a logo (optional) and up to {maxAdditionalImages} project images for the carousel
         </p>
       </div>
 
       <div className="space-y-8">
-        {/* Main Image Section */}
+        {/* Logo Section */}
         <div>
-          <h3 className="text-lg font-medium text-foreground mb-4">Main Image URL *</h3>
+          <h3 className="text-lg font-medium text-foreground mb-4">Logo URL (Optional)</h3>
           <div className="space-y-4">
             <input
               type="url"
@@ -100,21 +100,21 @@ export default function ProjectImageSection({
                     </svg>
                   </button>
                   <div className="absolute top-2 left-2 bg-accent text-white text-xs px-3 py-1 rounded font-semibold">
-                    Main Image
+                    Logo
                   </div>
                 </div>
               </div>
             )}
           </div>
           {!mainImagePreview && (
-            <p className="text-sm text-red-600 mt-2">* Main image URL is required</p>
+            <p className="text-sm text-gray-500 mt-2">Logo is optional and will be displayed above the project title</p>
           )}
         </div>
 
-        {/* Additional Images Section */}
+        {/* Project Images Section (for carousel) */}
         <div>
           <h3 className="text-lg font-medium text-foreground mb-4">
-            Additional Images ({additionalImagePreviews.length}/{maxAdditionalImages})
+            Project Images ({additionalImagePreviews.length}/{maxAdditionalImages})
           </h3>
           
           {additionalImagePreviews.length > 0 && (
@@ -177,7 +177,7 @@ export default function ProjectImageSection({
               <p className="text-xs text-gray-500">
                 {additionalImagePreviews.length > 0
                   ? `${maxAdditionalImages - additionalImagePreviews.length} more image${maxAdditionalImages - additionalImagePreviews.length > 1 ? 's' : ''} can be added`
-                  : "Add additional images (optional)"}
+                  : "Add project images for the carousel (optional)"}
               </p>
             </div>
           )}
