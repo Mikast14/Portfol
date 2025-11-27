@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../Navbar";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,6 +18,7 @@ interface Project {
 }
 
 export default function Profile() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -99,9 +101,9 @@ export default function Profile() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.map((project) => (
-                <Link
+                <div
                   key={project._id}
-                  href={`/profile/projects/${project._id}`}
+                  onClick={() => router.push(`/profile/projects/${project._id}`)}
                   className="group relative overflow-hidden rounded-large shadow-elevated transition-all hover:shadow-2xl cursor-pointer block"
                 >
                   <div className="relative w-full" style={{ aspectRatio: "4 / 3" }}>
@@ -164,7 +166,7 @@ export default function Profile() {
                       <h2 className="text-lg font-semibold text-white">{project.name}</h2>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}

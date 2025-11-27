@@ -5,13 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'assets.monica.im',
-        pathname: '/**',
+        hostname: '**',
       },
       {
-        protocol: 'https',
-        hostname: 'www.shutterstock.com',
-        pathname: '/**',
+        protocol: 'http',
+        hostname: '**',
       },
     ],
   },
