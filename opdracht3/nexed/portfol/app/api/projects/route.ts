@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     // Use URLs directly - no file processing needed
     // Logo is stored separately in image field, subimages go in images array
     const logoUrl = mainImageUrl || undefined;
-    const subImagePaths: string[] = additionalImageUrls.filter(url => url.trim());
+    const subImagePaths: string[] = additionalImageUrls.filter((url: string) => url.trim());
 
     console.log(`Saving project with logo URL and ${subImagePaths.length} subimage URLs`);
     console.log(`Logo URL: ${logoUrl || 'none'}`);
@@ -190,7 +190,7 @@ export async function PUT(request: Request) {
     // Use URLs directly - no file processing needed
     // Logo is stored separately in image field, subimages go in images array
     const logoUrl = mainImageUrl || undefined;
-    const subImagePaths: string[] = additionalImageUrls.filter(url => url.trim());
+    const subImagePaths: string[] = additionalImageUrls.filter((url: string) => url.trim());
 
     console.log(`Updating project with logo URL and ${subImagePaths.length} subimage URLs`);
     console.log(`Logo URL: ${logoUrl || 'none'}`);

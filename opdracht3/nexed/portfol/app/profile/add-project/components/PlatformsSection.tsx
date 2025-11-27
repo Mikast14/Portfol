@@ -18,11 +18,11 @@ export default function PlatformsSection({
   return (
     <div className="bg-white rounded-large p-8 shadow-elevated">
       <div className="mb-6 pb-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
           <span className="w-2 h-2 bg-accent rounded-full"></span>
           Platforms
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-600 mt-1">
           Select the platforms your project supports
         </p>
       </div>
@@ -39,14 +39,14 @@ export default function PlatformsSection({
               className={`relative p-4 rounded-base border-2 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                 isSelected
                   ? "border-accent bg-accent/5 shadow-md"
-                  : "border-gray-200 bg-gray-50/50 hover:border-gray-300"
+                  : "border-gray-200 bg-white hover:border-gray-300"
               }`}
             >
               <div className="flex flex-col items-center gap-2">
                 <div className="text-accent">
                   <PlatformIcon platform={platform} />
                 </div>
-                <span className="text-sm font-semibold text-black capitalize">
+                <span className="text-sm font-semibold text-gray-900 capitalize">
                   {platform === "macos" ? "macOS" : platform}
                 </span>
               </div>

@@ -18,18 +18,18 @@ export default function BasicInfoSection({
   return (
     <div className="bg-white rounded-large p-8 shadow-elevated">
       <div className="mb-6 pb-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
           <span className="w-2 h-2 bg-accent rounded-full"></span>
           Basic Information
         </h2>
-        <p className="text-sm text-gray-500 mt-1">Tell us about your project</p>
+        <p className="text-sm text-gray-600 mt-1">Tell us about your project</p>
       </div>
 
       <div className="space-y-6">
         <div className="group">
           <label
             htmlFor="name"
-            className="flex items-center gap-2 text-sm font-semibold text-black mb-2.5"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-2.5"
           >
             <span>Project Name</span>
             <span className="text-accent">*</span>
@@ -55,7 +55,7 @@ export default function BasicInfoSection({
               id="name"
               value={name}
               onChange={(event) => onNameChange(event.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all bg-gray-50/50 focus:bg-white"
+              className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all bg-white focus:bg-white"
               placeholder="e.g., My Awesome App"
               disabled={loading}
               required
@@ -66,7 +66,7 @@ export default function BasicInfoSection({
         <div className="group">
           <label
             htmlFor="description"
-            className="flex items-center gap-2 text-sm font-semibold text-black mb-2.5"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-2.5"
           >
             <span>Description</span>
             <span className="text-accent">*</span>
@@ -92,7 +92,7 @@ export default function BasicInfoSection({
               value={description}
               onChange={(event) => onDescriptionChange(event.target.value)}
               rows={5}
-              className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all resize-none bg-gray-50/50 focus:bg-white"
+              className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all resize-none bg-white focus:bg-white"
               placeholder="Describe your project, its features, and what makes it special..."
               disabled={loading}
               required

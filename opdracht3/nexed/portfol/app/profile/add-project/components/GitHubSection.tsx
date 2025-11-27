@@ -24,7 +24,7 @@ export default function GitHubSection({
   return (
     <div className="bg-white rounded-large p-8 shadow-elevated">
       <div className="mb-6 pb-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
           <svg
             className="w-5 h-5 text-accent"
             fill="currentColor"
@@ -34,14 +34,14 @@ export default function GitHubSection({
           </svg>
           GitHub Repository
         </h2>
-        <p className="text-sm text-gray-500 mt-1">Connect your project to GitHub</p>
+        <p className="text-sm text-gray-600 mt-1">Connect your project to GitHub</p>
       </div>
 
       <div className="space-y-6">
         <div className="group">
           <label
             htmlFor="githubUsername"
-            className="block text-sm font-semibold text-black mb-2.5"
+            className="block text-sm font-semibold text-gray-900 mb-2.5"
           >
             GitHub Username
           </label>
@@ -60,7 +60,7 @@ export default function GitHubSection({
               id="githubUsername"
               value={githubUsername}
               onChange={(event) => onGithubUsernameChange(event.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all bg-gray-50/50 focus:bg-white"
+              className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all bg-white focus:bg-white"
               placeholder="username"
               disabled={loading}
             />
@@ -76,7 +76,7 @@ export default function GitHubSection({
         <div className="group">
           <label
             htmlFor="githubRepo"
-            className="flex items-center gap-2 text-sm font-semibold text-black mb-2.5"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-900 mb-2.5"
           >
             <span>Repository</span>
             <span className="text-accent">*</span>
@@ -101,7 +101,7 @@ export default function GitHubSection({
               id="githubRepo"
               value={githubRepo}
               onChange={(event) => onGithubRepoChange(event.target.value)}
-              className="w-full pl-12 pr-10 py-3.5 border-2 border-gray-200 rounded-base text-black focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all bg-gray-50/50 focus:bg-white appearance-none cursor-pointer"
+              className="w-full pl-12 pr-10 py-3.5 border-2 border-gray-200 rounded-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all bg-white focus:bg-white appearance-none cursor-pointer"
               disabled={loading || loadingRepos}
               required
             >

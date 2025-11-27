@@ -57,11 +57,11 @@ export default function ProjectImageSection({
   return (
     <div className="bg-white rounded-large p-8 shadow-elevated">
       <div className="mb-6 pb-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
           <span className="w-2 h-2 bg-accent rounded-full"></span>
           Project Images
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-600 mt-1">
           Add a logo (optional) and up to {maxAdditionalImages} project images for the carousel
         </p>
       </div>
@@ -69,7 +69,7 @@ export default function ProjectImageSection({
       <div className="space-y-8">
         {/* Logo Section */}
         <div>
-          <h3 className="text-lg font-medium text-foreground mb-4">Logo URL (Optional)</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Logo URL (Optional)</h3>
           <div className="space-y-4">
             <input
               type="url"
@@ -77,7 +77,7 @@ export default function ProjectImageSection({
               onChange={handleMainImageUrlChange}
               placeholder="https://example.com/image.jpg"
               disabled={loading}
-              className="w-full max-w-md px-4 py-3 border-2 border-gray-300 rounded-base focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full max-w-md px-4 py-3 border-2 border-gray-300 rounded-base text-gray-900 placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
             />
             {mainImagePreview && (
               <div className="relative group">
@@ -107,13 +107,13 @@ export default function ProjectImageSection({
             )}
           </div>
           {!mainImagePreview && (
-            <p className="text-sm text-gray-500 mt-2">Logo is optional and will be displayed above the project title</p>
+            <p className="text-sm text-gray-600 mt-2">Logo is optional and will be displayed above the project title</p>
           )}
         </div>
 
         {/* Project Images Section (for carousel) */}
         <div>
-          <h3 className="text-lg font-medium text-foreground mb-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
             Project Images ({additionalImagePreviews.length}/{maxAdditionalImages})
           </h3>
           
@@ -163,7 +163,7 @@ export default function ProjectImageSection({
                   }}
                   placeholder="https://example.com/image.jpg"
                   disabled={loading}
-                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-base focus:border-accent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-base text-gray-900 placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   type="button"
@@ -174,7 +174,7 @@ export default function ProjectImageSection({
                   Add
                 </button>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-600">
                 {additionalImagePreviews.length > 0
                   ? `${maxAdditionalImages - additionalImagePreviews.length} more image${maxAdditionalImages - additionalImagePreviews.length > 1 ? 's' : ''} can be added`
                   : "Add project images for the carousel (optional)"}

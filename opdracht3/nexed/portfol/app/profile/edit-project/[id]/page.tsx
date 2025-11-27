@@ -302,8 +302,8 @@ export default function EditProject() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-4xl font-bold text-foreground">Edit Project</h1>
-                <p className="text-gray-600 mt-1">Update your project information</p>
+                <h1 className="text-4xl font-bold text-gray-900">Edit Project</h1>
+                <p className="text-gray-700 mt-1">Update your project information</p>
               </div>
             </div>
           </div>
