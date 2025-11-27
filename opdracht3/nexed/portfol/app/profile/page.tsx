@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Navbar from "../Navbar";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 interface Project {
   _id: string;
@@ -23,7 +22,6 @@ export default function Profile() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchProjects = async () => {
