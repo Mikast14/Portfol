@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
-import Navbar from "./Navbar";
+import Navbar from "../../components/Navbar";
 import Link from "next/link";
 import Image from "next/image";
 

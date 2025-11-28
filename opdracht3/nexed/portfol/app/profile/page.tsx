@@ -110,7 +110,7 @@ export default function Profile() {
               {projects.map((project) => (
                 <div
                   key={project._id}
-                  onClick={() => router.push(`/profile/projects/${project._id}`)}
+                  onClick={() => router.push(`/project/${project._id}`)}
                   className="group relative overflow-hidden rounded-large shadow-elevated transition-all hover:shadow-2xl cursor-pointer block"
                 >
                   <div className="relative w-full" style={{ aspectRatio: "4 / 3" }}>
