@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema(
             unique: true,
             sparse: true, // Allows multiple null values
         },
+        profileImage: {
+            type: String,
+            required: false,
+        },
     },
     {
         timestamps: true, // Automatically adds createdAt and updatedAt

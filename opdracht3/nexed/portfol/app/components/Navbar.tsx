@@ -71,9 +71,22 @@ const Navbar = () => {
             <div className="text-sm text-gray-500">Laden...</div>
           ) : isAuthenticated && user ? (
             <div className="flex items-center gap-3 shrink-0">
-              <span className="text-sm text-black font-medium">
-                {user.username}
-              </span>
+              {user.profileImage ? (
+                <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-gray-200">
+                  <Image
+                    src={user.profileImage}
+                    alt={user.username}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-200">
+                  <span className="text-sm font-medium text-gray-600">
+                    {user.username.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
               <button
                 onClick={logout}
                 className="bg-red-500 text-white rounded-full px-5 py-2 hover:bg-red-600 transition whitespace-nowrap"

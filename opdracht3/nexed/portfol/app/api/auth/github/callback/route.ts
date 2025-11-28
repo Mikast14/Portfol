@@ -157,6 +157,7 @@ export async function GET(request: Request) {
             if (existingUser) {
                 // Link GitHub account to existing user
                 existingUser.githubId = githubUser.id.toString();
+                existingUser.profileImage = githubUser.avatar_url || existingUser.profileImage;
                 await existingUser.save();
                 user = existingUser;
             } else {
@@ -179,6 +180,7 @@ export async function GET(request: Request) {
                         email: email.toLowerCase(),
                         username: username,
                         githubId: githubUser.id.toString(),
+                        profileImage: githubUser.avatar_url,
                         // OAuth users don't need a password - omit the field
                     });
                     await user.save();
@@ -191,6 +193,12 @@ export async function GET(request: Request) {
                     }
                     throw error;
                 }
+            }
+        } else {
+            // Update profile image if it exists and is different
+            if (githubUser.avatar_url && user.profileImage !== githubUser.avatar_url) {
+                user.profileImage = githubUser.avatar_url;
+                await user.save();
             }
         }
 
