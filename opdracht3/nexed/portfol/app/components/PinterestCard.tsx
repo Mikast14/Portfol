@@ -82,45 +82,45 @@ export default function PinterestCard({
           {/* Title Overlay - Appears on Hover */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="space-y-3">
-              {/* Title and Profile Picture Row */}
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="text-white font-semibold text-lg line-clamp-2 drop-shadow-lg flex-1">
-                  {project.name}
-                </h3>
-                {project.userId?.profileImage && (
-                  <div className="flex-shrink-0">
-                    <img
-                      src={project.userId.profileImage}
-                      alt={project.userId.username || "Owner"}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-white/50 shadow-lg"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-                {project.userId?.username && !project.userId.profileImage && (
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg">
-                    <span className="text-sm font-semibold text-white">
-                      {project.userId.username.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </div>
+              {/* Title */}
+              <h3 className="text-white font-semibold text-lg line-clamp-2 drop-shadow-lg">
+                {project.name}
+              </h3>
               
-              {/* Platform Tags */}
+              {/* Platform Tags with Profile Image */}
               {project.platforms && project.platforms.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {project.platforms.slice(0, 3).map((platform) => (
-                    <span
-                      key={platform}
-                      className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30"
-                    >
-                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                    </span>
-                  ))}
-                  {project.platforms.length > 3 && (
-                    <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
-                      +{project.platforms.length - 3}
-                    </span>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {project.platforms.slice(0, 3).map((platform) => (
+                      <span
+                        key={platform}
+                        className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30"
+                      >
+                        {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                      </span>
+                    ))}
+                    {project.platforms.length > 3 && (
+                      <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
+                        +{project.platforms.length - 3}
+                      </span>
+                    )}
+                  </div>
+                  {project.userId?.profileImage && (
+                    <div className="flex-shrink-0">
+                      <img
+                        src={project.userId.profileImage}
+                        alt={project.userId.username || "Owner"}
+                        className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-lg"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                  {project.userId?.username && !project.userId.profileImage && (
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg">
+                      <span className="text-xs font-semibold text-white">
+                        {project.userId.username.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
                   )}
                 </div>
               )}
