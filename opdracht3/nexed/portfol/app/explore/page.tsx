@@ -155,7 +155,7 @@ const ProjectsPage = () => {
                 <PinterestCard
                   key={project._id}
                   project={project}
-                  onOpen={() => router.push(`/project/${project._id}`)}
+                  onOpen={() => router.push(`/explore/project/${project._id}`)}
                 />
               ))}
             </div>
