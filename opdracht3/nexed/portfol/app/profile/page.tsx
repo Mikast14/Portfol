@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "../components/Navbar";
 import Link from "next/link";
 import Image from "next/image";
+import ProjectCard from "../components/ProjectCard";
 
 interface Project {
   _id: string;
@@ -108,74 +109,15 @@ export default function Profile() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.map((project) => (
-                <div
+                <ProjectCard
                   key={project._id}
-                  onClick={() => router.push(`/project/${project._id}`)}
-                  className="group relative overflow-hidden rounded-large shadow-elevated transition-all hover:shadow-2xl cursor-pointer block"
-                >
-                  <div className="relative w-full" style={{ aspectRatio: "4 / 3" }}>
-                    {project.image ? (
-                      <Image
-                        src={project.image}
-                        alt={project.name}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gray-200">
-                        <span className="text-sm text-gray-500">No image available</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-linear-to-t from-black/80 via-black/40 to-transparent translate-y-full opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                    <div className="flex justify-end gap-2 p-4">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          router.push(`/profile/edit-project/${project._id}`);
-                        }}
-                        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition-colors hover:bg-pink-50 group/edit"
-                        aria-label="Edit project"
-                      >
-                        <svg className="h-4 w-4 transition-colors group-hover/edit:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleDeleteClick(project._id, project.name);
-                        }}
-                        disabled={deletingId === project._id}
-                        className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70 group/delete"
-                        aria-label="Delete project"
-                      >
-                        {deletingId === project._id ? (
-                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                          </svg>
-                        ) : (
-                          <svg className="h-4 w-4 transition-colors group-hover/delete:text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18" strokeLinecap="round" />
-                            <path d="M8 6v-1a2 2 0 012-2h4a2 2 0 012 2v1" strokeLinecap="round" />
-                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M10 11v6" strokeLinecap="round" />
-                            <path d="M14 11v6" strokeLinecap="round" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                    <div className="p-4">
-                      <h2 className="text-lg font-semibold text-white">{project.name}</h2>
-                    </div>
-                  </div>
-                </div>
+                  project={project}
+                  mode="profile"
+                  onOpen={() => router.push(`/project/${project._id}`)}
+                  onEdit={(id) => router.push(`/profile/edit-project/${id}`)}
+                  onDelete={(id) => handleDeleteClick(id, project.name)}
+                  deleting={deletingId === project._id}
+                />
               ))}
             </div>
           )}
