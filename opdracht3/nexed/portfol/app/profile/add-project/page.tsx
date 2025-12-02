@@ -124,10 +124,18 @@ export default function AddProject() {
     setMessage("");
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setMessage("Error: You must be logged in to create a project");
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name,

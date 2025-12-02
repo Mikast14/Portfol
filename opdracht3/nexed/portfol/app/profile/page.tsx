@@ -28,7 +28,17 @@ export default function Profile() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await fetch("/api/projects");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch("/api/projects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
         if (data.ok) {
           setProjects(data.data);
@@ -56,8 +66,18 @@ export default function Profile() {
 
     setDeletingId(projectToDelete.id);
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found");
+        setDeletingId(null);
+        return;
+      }
+
       const response = await fetch(`/api/projects?id=${projectToDelete.id}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await response.json();
       if (data.ok) {

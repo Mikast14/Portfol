@@ -129,7 +129,18 @@ export default function ProjectDetail() {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const response = await fetch(`/api/projects?id=${params.id}`);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Authentication required");
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`/api/projects?id=${params.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
         if (data.ok) {
           setProject(data.data);

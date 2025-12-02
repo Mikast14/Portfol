@@ -15,7 +15,8 @@ const ProjectsPage = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       setLoading(true);
-      const res = await fetch("/api/projects");
+      // Fetch all projects from all users for the explore page
+      const res = await fetch("/api/projects?all=true");
       const data = await res.json();
       if (data.ok) setProjects(data.data);
       setLoading(false);
