@@ -56,7 +56,18 @@ export default function EditProject() {
   useEffect(() => {
     const fetchProject = async () => {
       try {
-        const response = await fetch(`/api/projects?id=${projectId}`);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setFetchError("Authentication required");
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`/api/projects?id=${projectId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const data = await response.json();
         if (data.ok) {
           const projectData = data.data;
@@ -201,10 +212,18 @@ export default function EditProject() {
     setMessage("");
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setMessage("Error: You must be logged in to update a project");
+        setSubmitting(false);
+        return;
+      }
+
       const response = await fetch("/api/projects", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           id: projectId,

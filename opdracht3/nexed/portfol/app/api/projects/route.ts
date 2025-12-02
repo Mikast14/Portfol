@@ -1,13 +1,35 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Project from "@/models/Project";
+import { verifyToken } from "@/lib/jwt";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+// Helper function to get current user ID from request headers
+function getCurrentUserId(request: Request): string | null {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+  const decoded = verifyToken(token);
+  return decoded ? decoded.userId : null;
+}
+
 export async function POST(request: Request) {
   console.log("=== POST /api/projects - REQUEST RECEIVED ===");
   try {
+    // Get current user ID from token
+    const userId = getCurrentUserId(request);
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     console.log("Connecting to database...");
     await connectDB();
     console.log("Database connected successfully");
@@ -80,6 +102,7 @@ export async function POST(request: Request) {
       platforms,
       image: logoUrl, // Logo (optional)
       images: subImagePaths, // Only subimages (not including logo)
+      userId: userId, // Associate project with the logged-in user
       githubDisplaySettings: {
         activeStatus: githubDisplaySettings.activeStatus || "auto",
         contributors: githubDisplaySettings.contributors || "auto",
@@ -123,6 +146,15 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   console.log("=== PUT /api/projects - REQUEST RECEIVED ===");
   try {
+    // Get current user ID from token
+    const userId = getCurrentUserId(request);
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     console.log("Connecting to database...");
     await connectDB();
     console.log("Database connected successfully");
@@ -147,6 +179,14 @@ export async function PUT(request: Request) {
       return NextResponse.json(
         { ok: false, error: "Project not found" },
         { status: 404 }
+      );
+    }
+
+    // Check if the project belongs to the current user
+    if (project.userId?.toString() !== userId) {
+      return NextResponse.json(
+        { ok: false, error: "You can only edit your own projects" },
+        { status: 403 }
       );
     }
 
@@ -236,6 +276,15 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    // Get current user ID from token
+    const userId = getCurrentUserId(request);
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
 
     const { searchParams } = new URL(request.url);
@@ -254,6 +303,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         { ok: false, error: "Project not found" },
         { status: 404 }
+      );
+    }
+
+    // Check if the project belongs to the current user
+    if (project.userId?.toString() !== userId) {
+      return NextResponse.json(
+        { ok: false, error: "You can only delete your own projects" },
+        { status: 403 }
       );
     }
 
@@ -277,6 +334,15 @@ export async function DELETE(request: Request) {
 
 export async function GET(request: Request) {
   try {
+    // Get current user ID from token
+    const userId = getCurrentUserId(request);
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
     await connectDB();
 
     const { searchParams } = new URL(request.url);
@@ -291,11 +357,18 @@ export async function GET(request: Request) {
           { status: 404 }
         );
       }
+      // Check if the project belongs to the current user
+      if (project.userId?.toString() !== userId) {
+        return NextResponse.json(
+          { ok: false, error: "You can only view your own projects" },
+          { status: 403 }
+        );
+      }
       return NextResponse.json({ ok: true, data: project });
     }
 
-    // Otherwise, fetch all projects
-    const projects = await Project.find().sort({ createdAt: -1 });
+    // Otherwise, fetch only projects belonging to the current user
+    const projects = await Project.find({ userId: userId }).sort({ createdAt: -1 });
 
     return NextResponse.json({ ok: true, data: projects });
   } catch (error) {
