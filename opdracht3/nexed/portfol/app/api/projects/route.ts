@@ -334,42 +334,47 @@ export async function DELETE(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    // Get current user ID from token
-    const userId = getCurrentUserId(request);
-    if (!userId) {
-      return NextResponse.json(
-        { ok: false, error: "Authentication required" },
-        { status: 401 }
-      );
-    }
-
     await connectDB();
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const all = searchParams.get("all") === "true"; // Query param to fetch all projects
+
+    // Get current user ID from token (optional for GET requests)
+    const userId = getCurrentUserId(request);
 
     // If ID is provided, fetch single project
     if (id) {
-      const project = await Project.findById(id);
+      const project = await Project.findById(id).populate("userId", "username email profileImage");
       if (!project) {
         return NextResponse.json(
           { ok: false, error: "Project not found" },
           { status: 404 }
         );
       }
-      // Check if the project belongs to the current user
-      if (project.userId?.toString() !== userId) {
-        return NextResponse.json(
-          { ok: false, error: "You can only view your own projects" },
-          { status: 403 }
-        );
-      }
+      // If user is authenticated and project doesn't belong to them, still allow viewing (for explore page)
+      // Only restrict if they're trying to edit/delete (handled in PUT/DELETE)
       return NextResponse.json({ ok: true, data: project });
     }
 
-    // Otherwise, fetch only projects belonging to the current user
-    const projects = await Project.find({ userId: userId }).sort({ createdAt: -1 });
+    // If "all=true" query param is provided, fetch all projects (for explore page)
+    if (all) {
+      const projects = await Project.find({})
+        .populate("userId", "username email profileImage")
+        .sort({ createdAt: -1 });
+      return NextResponse.json({ ok: true, data: projects });
+    }
 
+    // If user is authenticated, fetch only their projects (for profile page)
+    if (userId) {
+      const projects = await Project.find({ userId: userId }).sort({ createdAt: -1 });
+      return NextResponse.json({ ok: true, data: projects });
+    }
+
+    // If no auth and no "all" param, return all projects (default behavior for explore page)
+    const projects = await Project.find({})
+      .populate("userId", "username email profileImage")
+      .sort({ createdAt: -1 });
     return NextResponse.json({ ok: true, data: projects });
   } catch (error) {
     console.error("Error fetching projects:", error);
@@ -379,4 +384,5 @@ export async function GET(request: Request) {
     );
   }
 }
+
 
