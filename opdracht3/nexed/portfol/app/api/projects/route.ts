@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     const platforms = platformsString.split(",").map((p: string) => p.trim().toLowerCase());
 
     // Validate platforms
-    const validPlatforms = ["windows", "macos", "web", "linux"];
+    const validPlatforms = ["windows", "macos", "web", "linux", "game", "app"];
     const invalidPlatforms = platforms.filter((p: string) => !validPlatforms.includes(p));
     if (invalidPlatforms.length > 0) {
       return NextResponse.json(
@@ -218,7 +218,7 @@ export async function PUT(request: Request) {
     const platforms = platformsString.split(",").map((p: string) => p.trim().toLowerCase());
 
     // Validate platforms
-    const validPlatforms = ["windows", "macos", "web", "linux"];
+    const validPlatforms = ["windows", "macos", "web", "linux", "game", "app"];
     const invalidPlatforms = platforms.filter((p: string) => !validPlatforms.includes(p));
     if (invalidPlatforms.length > 0) {
       return NextResponse.json(

@@ -72,3 +72,16 @@ body {
   display: none;
 }
 
+/* Line clamp utilities for Pinterest cards */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Break inside avoid for masonry layout */
+.break-inside-avoid {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}

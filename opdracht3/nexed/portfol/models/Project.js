@@ -48,7 +48,7 @@ const projectSchema = new mongoose.Schema(
     platforms: {
       type: [String],
       required: true,
-      enum: ["windows", "macos", "web", "linux"],
+      enum: ["windows", "macos", "web", "linux", "game", "app"],
     },
     image: {
       type: String, // Path to the primary image file (for backward compatibility)
