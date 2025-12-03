@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PinterestCard from "../components/PinterestCard";
 import Navbar from "../components/Navbar";
 
@@ -26,9 +26,11 @@ interface Project {
 
 const ProjectsPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<FilterType[]>(["all"]);
+  const searchQuery = searchParams.get("search") || "";
 
   // Shuffle array function (Fisher-Yates algorithm)
   const shuffleArray = <T,>(array: T[]): T[] => {
@@ -80,13 +82,30 @@ const ProjectsPage = () => {
     });
   };
 
-  // Filter projects based on selected filters
+  // Filter projects based on selected filters and search query
   const filteredProjects = useMemo(() => {
-    if (selectedFilters.length === 0 || selectedFilters.includes("all")) {
-      return allProjects;
+    let projects = allProjects;
+
+    // Apply search filter first
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      projects = projects.filter((project: Project) => {
+        // Search by project name
+        const nameMatch = project.name?.toLowerCase().includes(query);
+        
+        // Search by GitHub username (stored in userId.username)
+        const usernameMatch = project.userId?.username?.toLowerCase().includes(query);
+        
+        return nameMatch || usernameMatch;
+      });
     }
 
-    return allProjects.filter((project: Project) => {
+    // Then apply platform filters
+    if (selectedFilters.length === 0 || selectedFilters.includes("all")) {
+      return projects;
+    }
+
+    return projects.filter((project: Project) => {
       const platforms = project.platforms || [];
       
       // Check if project matches any of the selected filters (OR logic)
@@ -118,7 +137,7 @@ const ProjectsPage = () => {
         return false;
       });
     });
-  }, [allProjects, selectedFilters]);
+  }, [allProjects, selectedFilters, searchQuery]);
 
   const filters: { id: FilterType; label: string }[] = [
     { id: "all", label: "All" },
@@ -137,6 +156,18 @@ const ProjectsPage = () => {
           {/* Header */}
           <div className="mb-6 px-2">
             <h1 className="text-4xl font-bold text-black mb-6">Explore</h1>
+            {searchQuery && (
+              <div className="mb-4 flex items-center gap-2">
+                <span className="text-gray-600">Search results for:</span>
+                <span className="font-semibold text-accent">&ldquo;{searchQuery}&rdquo;</span>
+                <button
+                  onClick={() => router.push("/explore")}
+                  className="ml-2 text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Filters */}
@@ -170,10 +201,21 @@ const ProjectsPage = () => {
             <div className="flex justify-center items-center py-20">
               <div className="text-center">
                 <p className="text-gray-500 text-lg mb-4">
-                  No projects found{selectedFilters.length > 0 && !selectedFilters.includes("all") 
-                    ? ` for ${selectedFilters.map(f => filters.find(filter => filter.id === f)?.label).join(", ")}` 
+                  No projects found
+                  {searchQuery 
+                    ? ` matching &ldquo;${searchQuery}&rdquo;`
+                    : selectedFilters.length > 0 && !selectedFilters.includes("all") 
+                    ? ` for ${selectedFilters.map(f => filters.find(filter => filter.id === f)?.label).join(", ")}`
                     : ""}.
                 </p>
+                {searchQuery && (
+                  <button
+                    onClick={() => router.push("/explore")}
+                    className="mt-4 text-accent hover:text-primary-hover underline"
+                  >
+                    Clear search and show all projects
+                  </button>
+                )}
               </div>
             </div>
           ) : (
