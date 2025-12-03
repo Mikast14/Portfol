@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import ProjectCard from "../../components/ProjectCard";
 import Image from "next/image";
+import SkillTree, { SkillItem } from "../../components/SkillTree";
 
 interface Project {
   _id: string;
@@ -40,6 +41,9 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "name">("newest");
+  const [skillItems, setSkillItems] = useState<SkillItem[] | null>(null);
+  const [skillsLoading, setSkillsLoading] = useState(false);
+  const [skillsError, setSkillsError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -79,6 +83,37 @@ export default function UserProfilePage() {
 
     fetchProfile();
   }, [username, params]);
+
+  useEffect(() => {
+    if (!username) return;
+
+    const fetchSkills = async () => {
+      setSkillsLoading(true);
+      setSkillsError(null);
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(username)}/languages`, { cache: "no-store" });
+        const data = await res.json();
+        if (data.ok) {
+          const items: SkillItem[] = (data.data.languages || []).map((l: any) => ({
+            language: l.language,
+            projects: l.projects,
+            percentage: l.percentage,
+          }));
+          setSkillItems(items);
+        } else {
+          setSkillsError(data.error || "Failed to load skills");
+          setSkillItems([]);
+        }
+      } catch (e) {
+        setSkillsError("Failed to load skills");
+        setSkillItems([]);
+      } finally {
+        setSkillsLoading(false);
+      }
+    };
+
+    fetchSkills();
+  }, [username]);
 
   if (loading) {
     return (
@@ -221,6 +256,21 @@ export default function UserProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Skills section – direct onder de header */}
+          {skillsLoading ? (
+            <div className="bg-white rounded-large p-8 shadow-elevated mb-6">
+              <p className="text-gray-700 text-base text-center">Loading skills...</p>
+            </div>
+          ) : skillsError ? (
+            <div className="bg-white rounded-large p-6 shadow-elevated mb-6">
+              <p className="text-red-600 text-sm text-center">{skillsError}</p>
+            </div>
+          ) : skillItems && skillItems.length > 0 ? (
+            <div className="mb-6">
+              <SkillTree items={skillItems} />
+            </div>
+          ) : null}
 
           {/* Projects Section */}
           {projects.length === 0 ? (
