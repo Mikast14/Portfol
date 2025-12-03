@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Link from "next/link";
 import Image from "next/image";
+import CommentsSection from "../../components/CommentsSection";
 
 type ActiveStatusMode = "auto" | "active" | "inactive" | "hide";
 type DisplayMode = "auto" | "hide";
@@ -524,6 +525,11 @@ export default function ProjectDetail() {
                   )}
                 </div>
               )}
+
+              {/* Comments directly under images (full-width block) */}
+              <div className="bg-white rounded-large shadow-elevated p-0">
+                <CommentsSection />
+              </div>
             </div>
 
             {/* Right Column - Information Panel (Single Card) */}
