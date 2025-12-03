@@ -68,6 +68,11 @@ const projectSchema = new mongoose.Schema(
       ref: "User",
       required: false, // Optional for now until auth is fully implemented
     },
+    likes: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt
