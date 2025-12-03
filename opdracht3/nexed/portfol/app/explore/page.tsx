@@ -7,11 +7,38 @@ import Navbar from "../components/Navbar";
 
 type FilterType = "all" | "web" | "desktop" | "mobile" | "game" | "app";
 
+interface Project {
+  _id: string;
+  name: string;
+  description?: string;
+  githubRepo?: string;
+  platforms?: string[];
+  image?: string;
+  images?: string[];
+  userId?: {
+    username?: string;
+    email?: string;
+    profileImage?: string;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 const ProjectsPage = () => {
   const router = useRouter();
-  const [allProjects, setAllProjects] = useState<any[]>([]);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState<FilterType[]>(["all"]);
+
+  // Shuffle array function (Fisher-Yates algorithm)
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -19,7 +46,11 @@ const ProjectsPage = () => {
       // Fetch all projects from all users for the explore page
       const res = await fetch("/api/projects?all=true");
       const data = await res.json();
-      if (data.ok) setAllProjects(data.data);
+      if (data.ok) {
+        // Shuffle projects to display in random order
+        const shuffledProjects = shuffleArray(data.data as Project[]);
+        setAllProjects(shuffledProjects);
+      }
       setLoading(false);
     };
     fetchProjects();
@@ -55,7 +86,7 @@ const ProjectsPage = () => {
       return allProjects;
     }
 
-    return allProjects.filter((project: any) => {
+    return allProjects.filter((project: Project) => {
       const platforms = project.platforms || [];
       
       // Check if project matches any of the selected filters (OR logic)
@@ -151,7 +182,7 @@ const ProjectsPage = () => {
               className="columns-1 sm:columns-2 lg:columns-3 space-y-0"
               style={{ columnGap: "1.5rem" }}
             >
-              {filteredProjects.map((project: any) => (
+              {filteredProjects.map((project: Project) => (
                 <PinterestCard
                   key={project._id}
                   project={project}
