@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Project from "@/models/Project";
+import Comment from "@/models/Comment";
 import { verifyToken } from "@/lib/jwt";
 
 export const runtime = "nodejs";
@@ -306,7 +307,7 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Check if the project belongs to the current user
+    // Check ownership
     if (project.userId?.toString() !== userId) {
       return NextResponse.json(
         { ok: false, error: "You can only delete your own projects" },
@@ -314,8 +315,8 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Note: Since we're now using external URLs, we don't need to delete local files
-    // Images are hosted externally, so no cleanup needed
+    // Delete all comments linked to this project
+    await Comment.deleteMany({ projectId: id });
 
     await Project.findByIdAndDelete(id);
 
