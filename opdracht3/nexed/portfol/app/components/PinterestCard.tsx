@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import React, { useState } from "react";
 
 type PinterestProject = {
@@ -50,12 +51,16 @@ export default function PinterestCard({
         <div className="relative w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
           {displayImage && !imageError ? (
             <div className="relative w-full">
-              <img
+              {/* Use Next.js Image for optimization, but fallback to img for CORS issues */}
+              <Image
                 src={displayImage}
                 alt={project.name}
+                width={800}
+                height={600}
                 className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                 onError={() => setImageError(true)}
                 loading="lazy"
+                style={{ maxWidth: '100%', height: 'auto' }}
               />
             </div>
           ) : (
@@ -105,22 +110,32 @@ export default function PinterestCard({
                       </span>
                     )}
                   </div>
-                  {project.userId?.profileImage && (
-                    <div className="flex-shrink-0">
-                      <img
+                  {project.userId?.profileImage && project.userId?.username && (
+                    <Link
+                      href={`/user/${project.userId.username}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-shrink-0 hover:scale-110 transition-transform"
+                    >
+                      <Image
                         src={project.userId.profileImage}
                         alt={project.userId.username || "Owner"}
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-lg"
                         loading="lazy"
                       />
-                    </div>
+                    </Link>
                   )}
                   {project.userId?.username && !project.userId.profileImage && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg">
+                    <Link
+                      href={`/user/${project.userId.username}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg hover:scale-110 transition-transform"
+                    >
                       <span className="text-xs font-semibold text-white">
                         {project.userId.username.charAt(0).toUpperCase()}
                       </span>
-                    </div>
+                    </Link>
                   )}
                 </div>
               )}

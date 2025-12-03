@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
 import Link from "next/link";
 import Image from "next/image";
@@ -34,6 +34,12 @@ interface Project {
   image?: string;
   images?: string[];
   githubDisplaySettings?: GitHubDisplaySettings;
+  userId?: {
+    _id?: string;
+    username?: string;
+    email?: string;
+    profileImage?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -72,7 +78,12 @@ const platformIcons: Record<string, React.ReactElement> = {
 
 export default function ExploreProjectDetail() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
+  
+  // Check if we came from a profile page
+  const fromProfile = searchParams?.get("from") === "profile";
+  const username = searchParams?.get("username");
   
   // Get settings from project or use defaults
   const settings: GitHubDisplaySettings = project?.githubDisplaySettings 
@@ -543,14 +554,47 @@ export default function ExploreProjectDetail() {
 
                 {/* Metadata Section */}
                 <div className="space-y-4 pt-4 border-t border-gray-200">
+                  {/* User Info */}
+                  {project.userId?.username && (
+                    <div>
+                      <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Created by</div>
+                      <Link
+                        href={`/user/${project.userId.username}`}
+                        className="flex items-center gap-3 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors group"
+                      >
+                        {project.userId.profileImage ? (
+                          <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                            <Image
+                              src={project.userId.profileImage}
+                              alt={project.userId.username}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary-hover flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-bold text-white">
+                              {project.userId.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-sm font-medium text-gray-900 group-hover:text-accent transition-colors">
+                          {project.userId.username}
+                        </span>
+                        <svg className="w-4 h-4 text-gray-400 group-hover:text-accent transition-colors ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  )}
                   <div>
                     <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Release Date</div>
                     <div className="text-gray-700 text-sm">
-                      {new Date(project.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {(() => {
+                        const date = new Date(project.createdAt);
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+                      })()}
                     </div>
                   </div>
                   <div>
@@ -592,9 +636,10 @@ export default function ExploreProjectDetail() {
                         {/* Active/Inactive Status */}
                         {settings.activeStatus !== "hide" && (() => {
                           if (settings.activeStatus === "auto" && repoInfo) {
-                            const active =
-                              Date.now() - new Date(repoInfo.updated_at).getTime() <
-                              14 * 24 * 60 * 60 * 1000;
+                            // Use a consistent calculation that works on both server and client
+                            const repoUpdatedTime = new Date(repoInfo.updated_at).getTime();
+                            const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                            const active = repoUpdatedTime > fourteenDaysAgo;
                             return (
                               <span
                                 className={`px-2 py-1 rounded-full ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
@@ -696,13 +741,13 @@ export default function ExploreProjectDetail() {
                     View on GitHub
                   </a>
                   <Link
-                    href="/explore"
+                    href={fromProfile && username ? `/user/${encodeURIComponent(username)}` : "/explore"}
                     className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
-                    Back to Explore
+                    {fromProfile && username ? "Back to Profile" : "Back to Explore"}
                   </Link>
                 </div>
               </div>

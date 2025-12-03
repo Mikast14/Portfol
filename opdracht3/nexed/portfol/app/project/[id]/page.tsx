@@ -380,10 +380,10 @@ export default function ProjectDetail() {
               <p className="text-red-600 text-center">{error || "Project not found"}</p>
               <div className="mt-4 text-center">
                 <Link
-                  href="/profile"
+                  href="/yourprojects"
                   className="text-accent hover:text-primary-hover font-medium"
                 >
-                  ← Back to Profile
+                  ← Back to Your Projects
                 </Link>
               </div>
             </div>
@@ -405,8 +405,8 @@ export default function ProjectDetail() {
           {/* Breadcrumbs */}
           <div className="mb-6">
             <div className="flex items-center gap-2 text-sm text-gray-700">
-              <Link href="/profile" className="hover:text-accent transition-colors text-gray-700">
-                Profile
+              <Link href="/yourprojects" className="hover:text-accent transition-colors text-gray-700">
+                Your Projects
               </Link>
               <span className="text-gray-400">/</span>
               <span className="text-black font-medium">{project.name}</span>
@@ -556,11 +556,11 @@ export default function ProjectDetail() {
                   <div>
                     <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Release Date</div>
                     <div className="text-gray-700 text-sm">
-                      {new Date(project.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
+                      {(() => {
+                        const date = new Date(project.createdAt);
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+                      })()}
                     </div>
                   </div>
                   <div>
@@ -602,9 +602,10 @@ export default function ProjectDetail() {
                         {/* Active/Inactive Status */}
                         {settings.activeStatus !== "hide" && (() => {
                           if (settings.activeStatus === "auto" && repoInfo) {
-                            const active =
-                              Date.now() - new Date(repoInfo.updated_at).getTime() <
-                              14 * 24 * 60 * 60 * 1000;
+                            // Use a consistent calculation that works on both server and client
+                            const repoUpdatedTime = new Date(repoInfo.updated_at).getTime();
+                            const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                            const active = repoUpdatedTime > fourteenDaysAgo;
                             return (
                               <span
                                 className={`px-2 py-1 rounded-full ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
@@ -706,13 +707,13 @@ export default function ProjectDetail() {
                     View on GitHub
                   </a>
                   <Link
-                    href="/profile"
+                    href="/yourprojects"
                     className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
-                    Back to Profile
+                    Back to Your Projects
                   </Link>
                 </div>
               </div>

@@ -44,6 +44,7 @@ export async function GET(request: Request) {
                 email: user.email,
                 username: user.username,
                 profileImage: user.profileImage || null,
+                createdAt: user.createdAt || new Date(),
             },
         });
     } catch (error) {
