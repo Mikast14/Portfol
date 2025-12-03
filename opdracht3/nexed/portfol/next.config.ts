@@ -21,7 +21,13 @@ const nextConfig: NextConfig = {
         hostname: 'static01.nyt.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.bigfootdigital.co.uk',
+        pathname: '/**',
+      },
     ],
+    unoptimized: false,
   },
 };
 

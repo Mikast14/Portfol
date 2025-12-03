@@ -13,6 +13,7 @@ interface Project {
   githubRepo: string;
   platforms: string[];
   image?: string;
+  images?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -100,8 +101,8 @@ export default function Profile() {
           <div className="bg-white rounded-large p-8 shadow-elevated mb-6">
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-bold text-foreground mb-3">Your Projects</h1>
-                <p className="text-gray-700 text-base leading-relaxed mt-2">Manage and organize your portfolio projects.</p>
+                <h1 className="text-3xl font-bold text-foreground">Your Projects</h1>
+                <p className="text-gray-600 mt-2">Manage and organize your portfolio projects.</p>
               </div>
               <Link
                 href="/yourprojects/add-project"
@@ -114,19 +115,22 @@ export default function Profile() {
 
           {loading ? (
             <div className="bg-white rounded-large p-8 shadow-elevated">
-              <p className="text-gray-700 text-center text-base">Loading projects...</p>
+              <p className="text-gray-500 text-center">Loading projects...</p>
             </div>
           ) : projects.length === 0 ? (
             <div className="bg-white rounded-large p-8 shadow-elevated">
-              <p className="text-gray-700 text-center py-8 text-base leading-relaxed">
+              <p className="text-gray-500 text-center py-8">
                 No projects yet.{" "}
-                <Link href="/yourprojects/add-project" className="text-accent hover:text-primary-hover font-semibold underline-offset-2 hover:underline">
+                <Link href="/yourprojects/add-project" className="text-accent hover:text-primary-hover font-medium">
                   Add your first project
                 </Link>
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div 
+              className="columns-1 sm:columns-2 lg:columns-3 space-y-0"
+              style={{ columnGap: "1.5rem" }}
+            >
               {projects.map((project) => (
                 <ProjectCard
                   key={project._id}
@@ -155,13 +159,13 @@ export default function Profile() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">Delete Project</h3>
-                  <p className="text-sm text-gray-700 mt-1 font-medium">This action cannot be undone</p>
+                  <h3 className="text-xl font-bold text-gray-900">Delete Project</h3>
+                  <p className="text-sm text-gray-600 mt-1">This action cannot be undone</p>
                 </div>
               </div>
               
-              <p className="text-gray-800 mb-6 text-base leading-relaxed">
-                Are you sure you want to delete <span className="font-bold text-gray-900">&ldquo;{projectToDelete.name}&rdquo;</span>? 
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete <span className="font-semibold text-gray-900">&ldquo;{projectToDelete.name}&rdquo;</span>? 
                 This will permanently remove the project and all its data.
               </p>
 

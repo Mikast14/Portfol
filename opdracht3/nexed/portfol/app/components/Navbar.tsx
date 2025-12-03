@@ -12,28 +12,36 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [userSearchResults, setUserSearchResults] = useState<Array<{
+    id: string;
+    username: string;
+    profileImage: string | null;
+    email: string;
+  }>>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  // Load recent searches from localStorage using lazy initializer to avoid hydration mismatch
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem("recentSearches");
+      if (stored) {
+        const searches = JSON.parse(stored);
+        return Array.isArray(searches) ? searches : [];
+      }
+    } catch (error) {
+      console.error("Error parsing recent searches:", error);
+    }
+    return [];
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const navLinks = [
     { label: "Explore", href: "/explore" },
-    { label: "Profile", href: "/profile" },
+    { label: "Your Projects", href: "/yourprojects" },
   ];
-
-  // Load recent searches from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem("recentSearches");
-    if (stored) {
-      try {
-        const searches = JSON.parse(stored);
-        setRecentSearches(Array.isArray(searches) ? searches : []);
-      } catch (error) {
-        console.error("Error parsing recent searches:", error);
-      }
-    }
-  }, []);
 
   // Prevent autofill on search input - aggressive prevention for all password managers
   useEffect(() => {
@@ -56,8 +64,6 @@ const Navbar = () => {
       input.setAttribute('data-not-password', 'true');
       // Prevent password managers from detecting this as a login field
       input.setAttribute('data-form-type', 'other');
-      // Force readonly initially to prevent autofill on page load
-      input.setAttribute('readonly', 'readonly');
       
       // Also prevent autofill on the form element
       const form = input.closest('form');
@@ -69,6 +75,46 @@ const Navbar = () => {
       }
     }
   }, []);
+
+  // Search for users as user types
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // If search query is empty, clear results
+    if (!searchQuery.trim()) {
+      setUserSearchResults([]);
+      setIsSearchingUsers(false);
+      return;
+    }
+
+    // Debounce search requests
+    setIsSearchingUsers(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery.trim())}`);
+        const data = await res.json();
+        if (data.ok) {
+          setUserSearchResults(data.data || []);
+        } else {
+          setUserSearchResults([]);
+        }
+      } catch (error) {
+        console.error("Error searching users:", error);
+        setUserSearchResults([]);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }, 300); // 300ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -123,7 +169,16 @@ const Navbar = () => {
 
   const handleRecentSearchClick = (query: string) => {
     setSearchQuery(query);
-    handleSearch(new Event("submit") as any, query);
+    const syntheticEvent = {
+      preventDefault: () => {},
+    } as React.FormEvent;
+    handleSearch(syntheticEvent, query);
+  };
+
+  const handleUserProfileClick = (username: string) => {
+    router.push(`/user/${username}`);
+    setSearchQuery("");
+    setIsSearchFocused(false);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -229,7 +284,7 @@ const Navbar = () => {
                   <button 
                     type="submit"
                     aria-label="Search" 
-                    className={`relative z-10 p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
+                    className={`relative z-10 p-2 rounded-full transition-all duration-200 shrink-0 ${
                       isSearchFocused || searchQuery
                         ? "text-accent"
                         : "text-gray-400 hover:text-gray-600"
@@ -256,7 +311,6 @@ const Navbar = () => {
                     id="search-input"
                     role="searchbox"
                     autoComplete="off"
-                    autoCapitalize="off"
                     autoCorrect="off"
                     spellCheck="false"
                     data-form-type="other"
@@ -273,7 +327,7 @@ const Navbar = () => {
                     data-not-username="true"
                     data-not-password="true"
                     inputMode="search"
-                    placeholder="Search projects or GitHub users..."
+                    placeholder="Search projects or profiles..."
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -283,9 +337,6 @@ const Navbar = () => {
                       setIsSearchFocused(true);
                       // Aggressively prevent autofill
                       const input = e.currentTarget;
-                      // Temporarily change type to confuse password managers
-                      const originalType = input.type;
-                      input.type = 'text';
                       input.setAttribute('autocomplete', 'off');
                       input.setAttribute('data-lpignore', 'true');
                       input.setAttribute('data-1p-ignore', 'true');
@@ -295,14 +346,6 @@ const Navbar = () => {
                       input.setAttribute('data-bitwarden-watching', 'false');
                       input.setAttribute('data-not-username', 'true');
                       input.setAttribute('data-not-password', 'true');
-                      // Restore type after a brief moment
-                      setTimeout(() => {
-                        input.type = originalType;
-                        // Delay removing readonly to prevent autofill
-                        setTimeout(() => {
-                          input.removeAttribute('readonly');
-                        }, 50);
-                      }, 100);
                     }}
                     onBlur={() => {
                       // Delay to allow click events to fire
@@ -312,9 +355,7 @@ const Navbar = () => {
                       // Prevent autofill on click
                       const input = e.currentTarget;
                       input.setAttribute('autocomplete', 'off');
-                      input.removeAttribute('readonly');
                     }}
-                    readOnly
                     className={`relative z-10 flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder-gray-400 transition-all duration-300 h-full ${
                       isSearchFocused || searchQuery 
                         ? "opacity-100 pointer-events-auto pr-4" 
@@ -324,37 +365,110 @@ const Navbar = () => {
                 </div>
               </div>
               
-              {/* Recent Searches Dropdown */}
-              {isSearchFocused && recentSearches.length > 0 && (
+              {/* Search Results Dropdown */}
+              {isSearchFocused && (userSearchResults.length > 0 || recentSearches.length > 0 || searchQuery.trim()) && (
                 <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recent Searches</p>
-                  </div>
-                  <div className="py-1 max-h-64 overflow-y-auto">
-                    {recentSearches.map((search, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => handleRecentSearchClick(search)}
-                        className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 group/item"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4 text-gray-400 group-hover/item:text-accent transition-colors flex-shrink-0"
-                        >
-                          <circle cx="12" cy="12" r="10" />
-                          <polyline points="12 6 12 12 16 14" />
-                        </svg>
-                        <span className="truncate flex-1">{search}</span>
-                      </button>
-                    ))}
-                  </div>
+                  {/* User Profile Results */}
+                  {userSearchResults.length > 0 && (
+                    <>
+                      <div className="px-3 py-2 border-b border-gray-100">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Profiles</p>
+                      </div>
+                      <div className="py-1 max-h-64 overflow-y-auto">
+                        {userSearchResults.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => handleUserProfileClick(user.username)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3 group/item"
+                          >
+                            {user.profileImage ? (
+                              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 group-hover/item:border-accent transition-colors shrink-0">
+                                <Image
+                                  src={user.profileImage}
+                                  alt={user.username}
+                                  width={48}
+                                  height={48}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center border-2 border-gray-200 group-hover/item:border-accent transition-colors shrink-0">
+                                <span className="text-lg font-semibold text-accent">
+                                  {user.username.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{user.username}</p>
+                              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            </div>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4 text-gray-400 group-hover/item:text-accent transition-colors shrink-0"
+                            >
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Recent Searches - Only show if no user results or search query is empty */}
+                  {recentSearches.length > 0 && userSearchResults.length === 0 && !searchQuery.trim() && (
+                    <>
+                      <div className="px-3 py-2 border-b border-gray-100">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recent Searches</p>
+                      </div>
+                      <div className="py-1 max-h-64 overflow-y-auto">
+                        {recentSearches.map((search, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleRecentSearchClick(search)}
+                            className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 group/item"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4 text-gray-400 group-hover/item:text-accent transition-colors shrink-0"
+                            >
+                              <circle cx="12" cy="12" r="10" />
+                              <polyline points="12 6 12 12 16 14" />
+                            </svg>
+                            <span className="truncate flex-1">{search}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Loading State */}
+                  {isSearchingUsers && userSearchResults.length === 0 && searchQuery.trim() && (
+                    <div className="px-4 py-3 text-center">
+                      <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent"></div>
+                      <p className="text-xs text-gray-500 mt-2">Searching...</p>
+                    </div>
+                  )}
+
+                  {/* No Results */}
+                  {!isSearchingUsers && userSearchResults.length === 0 && searchQuery.trim() && (
+                    <div className="px-4 py-3 text-center">
+                      <p className="text-sm text-gray-500">No profiles found</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -400,7 +514,7 @@ const Navbar = () => {
 
                     {/* Settings Link */}
                     <Link
-                      href="/profile"
+                      href="/yourprojects"
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
