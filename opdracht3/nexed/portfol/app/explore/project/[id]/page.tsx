@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../../components/Navbar";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/hooks/useAuth";
 
 type ActiveStatusMode = "auto" | "active" | "inactive" | "hide";
 type DisplayMode = "auto" | "hide";
@@ -79,6 +80,7 @@ const platformIcons: Record<string, React.ReactElement> = {
 export default function ExploreProjectDetail() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   
   // Check if we came from a profile page
@@ -102,6 +104,8 @@ export default function ExploreProjectDetail() {
   }[]>([]);
   const [contributorsLoading, setContributorsLoading] = useState(false);
   const [contributorsError, setContributorsError] = useState<string | null>(null);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   // NEW: single repo metadata (cached 20 min)
   const [repoInfo, setRepoInfo] = useState<null | {
@@ -160,6 +164,78 @@ export default function ExploreProjectDetail() {
       fetchProject();
     }
   }, [params.id]);
+
+  // Check if project is bookmarked
+  useEffect(() => {
+    if (!isAuthenticated || !project?._id) return;
+
+    const checkBookmark = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch(`/api/bookmarks?check=${project._id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsBookmarked(data.data.isBookmarked);
+        }
+      } catch (error) {
+        console.error("Error checking bookmark:", error);
+      }
+    };
+
+    checkBookmark();
+  }, [isAuthenticated, project?._id]);
+
+  // Handle bookmark toggle
+  const handleBookmark = async () => {
+    if (!isAuthenticated || !project?._id) return;
+
+    setBookmarkLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      if (isBookmarked) {
+        // Unbookmark
+        const res = await fetch(`/api/bookmarks?projectId=${project._id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsBookmarked(false);
+        }
+      } else {
+        // Bookmark
+        const res = await fetch("/api/bookmarks", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ projectId: project._id }),
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsBookmarked(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
 
   // Auto-advance carousel every 5 seconds
   useEffect(() => {
@@ -729,6 +805,44 @@ export default function ExploreProjectDetail() {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
+                  {isAuthenticated && (
+                    <button
+                      onClick={handleBookmark}
+                      disabled={bookmarkLoading}
+                      className={`w-full px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
+                        isBookmarked
+                          ? "bg-accent hover:bg-primary-hover text-white"
+                          : "bg-gray-200 hover:bg-gray-300 text-black"
+                      } disabled:cursor-not-allowed disabled:opacity-70`}
+                    >
+                      {bookmarkLoading ? (
+                        <>
+                          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                          </svg>
+                          {isBookmarked ? "Removing..." : "Bookmarking..."}
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5"
+                            fill={isBookmarked ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                            />
+                          </svg>
+                          {isBookmarked ? "Bookmarked" : "Bookmark"}
+                        </>
+                      )}
+                    </button>
+                  )}
                   <a
                     href={githubUrl}
                     target="_blank"

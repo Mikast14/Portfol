@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 type PinterestProject = {
   _id: string;
@@ -27,11 +28,89 @@ export default function PinterestCard({
   onOpen,
 }: PinterestCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
   
   // Use first image from images array, or fall back to main image
   const displayImage = project.images && project.images.length > 0 
     ? project.images[0] 
     : project.image;
+
+  // Check if project is bookmarked
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkBookmark = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch(`/api/bookmarks?check=${project._id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsBookmarked(data.data.isBookmarked);
+        }
+      } catch (error) {
+        console.error("Error checking bookmark:", error);
+      }
+    };
+
+    checkBookmark();
+  }, [isAuthenticated, project._id]);
+
+  // Handle bookmark toggle
+  const handleBookmark = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) return;
+
+    setBookmarkLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      if (isBookmarked) {
+        // Unbookmark
+        const res = await fetch(`/api/bookmarks?projectId=${project._id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsBookmarked(false);
+        }
+      } else {
+        // Bookmark
+        const res = await fetch("/api/bookmarks", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ projectId: project._id }),
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsBookmarked(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+    } finally {
+      setBookmarkLoading(false);
+    }
+  };
 
   return (
     <div
@@ -81,6 +160,40 @@ export default function PinterestCard({
                 </svg>
                 <span className="text-sm text-gray-400">No image</span>
               </div>
+            </div>
+          )}
+          
+          {/* Bookmark Button - Top Right */}
+          {isAuthenticated && (
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+              <button
+                type="button"
+                onClick={handleBookmark}
+                disabled={bookmarkLoading}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/bookmark"
+                aria-label={isBookmarked ? "Remove bookmark" : "Bookmark project"}
+              >
+                {bookmarkLoading ? (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg
+                    className={`h-4 w-4 transition-colors group-hover/bookmark:text-accent ${isBookmarked ? "fill-accent text-accent" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill={isBookmarked ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
           )}
           
