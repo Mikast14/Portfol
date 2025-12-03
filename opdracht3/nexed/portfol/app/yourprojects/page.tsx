@@ -136,7 +136,7 @@ export default function Profile() {
                   key={project._id}
                   project={project}
                   mode="profile"
-                  onOpen={() => router.push(`/project/${project._id}`)}
+                  onOpen={() => router.push(`/explore/project/${project._id}?from=yourprojects`)}
                   onEdit={(id) => router.push(`/yourprojects/edit-project/${id}`)}
                   onDelete={(id) => handleDeleteClick(id, project.name)}
                   deleting={deletingId === project._id}
