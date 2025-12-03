@@ -15,7 +15,9 @@ type ProjectItem = {
   userId?: {
     username?: string;
     profileImage?: string;
+    _id?: string;
   };
+  likes?: string[];
 };
 
 interface ProjectCardProps {
@@ -42,10 +44,14 @@ export default function ProjectCard({
   const [imageError, setImageError] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
+  const [likeLoading, setLikeLoading] = useState(false);
+  const { isAuthenticated, user } = useAuth();
   const canEdit = showEditButton ?? mode === "profile";
   const canDelete = showDeleteButton ?? mode === "profile";
   const showBookmark = mode === "explore" && isAuthenticated;
+  const showLike = mode === "explore" && isAuthenticated && project.userId?._id !== user?.id;
 
   // Use first image from images array, or fall back to main image
   const displayImage = project.images && project.images.length > 0 
@@ -78,6 +84,38 @@ export default function ProjectCard({
 
     checkBookmark();
   }, [isAuthenticated, showBookmark, project._id]);
+
+  // Check if project is liked and get likes count
+  useEffect(() => {
+    if (!isAuthenticated || !showLike) {
+      setLikesCount(project.likes?.length || 0);
+      return;
+    }
+
+    const checkLike = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const res = await fetch(`/api/projects/${project._id}/like`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsLiked(data.data.isLiked);
+          setLikesCount(data.data.likesCount);
+        }
+      } catch (error) {
+        console.error("Error checking like:", error);
+        setLikesCount(project.likes?.length || 0);
+      }
+    };
+
+    checkLike();
+  }, [isAuthenticated, showLike, project._id, project.likes]);
 
   // Handle bookmark toggle
   const handleBookmark = async (e: React.MouseEvent) => {
@@ -124,6 +162,58 @@ export default function ProjectCard({
       console.error("Error toggling bookmark:", error);
     } finally {
       setBookmarkLoading(false);
+    }
+  };
+
+  // Handle like toggle
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated || !showLike) return;
+
+    setLikeLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      if (isLiked) {
+        // Unlike
+        const res = await fetch(`/api/projects/${project._id}/like`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsLiked(false);
+          setLikesCount(data.data.likesCount);
+        } else {
+          console.error("Error unliking project:", data.error);
+        }
+      } else {
+        // Like
+        const res = await fetch(`/api/projects/${project._id}/like`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (data.ok) {
+          setIsLiked(true);
+          setLikesCount(data.data.likesCount);
+        } else {
+          console.error("Error liking project:", data.error);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    } finally {
+      setLikeLoading(false);
     }
   };
 
@@ -177,9 +267,39 @@ export default function ProjectCard({
             </div>
           )}
           
-          {/* Action Buttons (Bookmark/Edit/Delete) - Top Right */}
-          {(showBookmark || canEdit || canDelete) && (
+          {/* Action Buttons (Like/Bookmark/Edit/Delete) - Top Right */}
+          {(showLike || showBookmark || canEdit || canDelete) && (
             <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+              {showLike && (
+                <button
+                  type="button"
+                  onClick={handleLike}
+                  disabled={likeLoading}
+                  className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/like"
+                  aria-label={isLiked ? "Unlike project" : "Like project"}
+                >
+                  {likeLoading ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <svg
+                      className={`h-4 w-4 transition-colors group-hover/like:text-accent ${isLiked ? "fill-accent text-accent" : ""}`}
+                      viewBox="0 0 24 24"
+                      fill={isLiked ? "currentColor" : "none"}
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              )}
               {showBookmark && (
                 <button
                   type="button"
@@ -265,10 +385,10 @@ export default function ProjectCard({
                 {project.name}
               </h3>
               
-              {/* Platform Tags with Profile Image */}
+              {/* Platform Tags with Profile Image and Like Count */}
               {project.platforms && project.platforms.length > 0 && (
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 items-center">
                     {project.platforms.slice(0, 3).map((platform) => (
                       <span
                         key={platform}
@@ -280,6 +400,14 @@ export default function ProjectCard({
                     {project.platforms.length > 3 && (
                       <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
                         +{project.platforms.length - 3}
+                      </span>
+                    )}
+                    {showLike && likesCount > 0 && (
+                      <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30 flex items-center gap-1">
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                        </svg>
+                        {likesCount}
                       </span>
                     )}
                   </div>
