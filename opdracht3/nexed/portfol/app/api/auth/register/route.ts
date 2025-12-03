@@ -20,6 +20,31 @@ export async function POST(request: Request) {
             );
         }
 
+        // Validate username is provided
+        if (!username || !username.trim()) {
+            return NextResponse.json(
+                { ok: false, error: "Gebruikersnaam is verplicht" },
+                { status: 400 }
+            );
+        }
+
+        const trimmedUsername = username.trim();
+
+        // Validate username length
+        if (trimmedUsername.length < 3) {
+            return NextResponse.json(
+                { ok: false, error: "Gebruikersnaam moet minimaal 3 tekens lang zijn" },
+                { status: 400 }
+            );
+        }
+
+        if (trimmedUsername.length > 30) {
+            return NextResponse.json(
+                { ok: false, error: "Gebruikersnaam mag maximaal 30 tekens lang zijn" },
+                { status: 400 }
+            );
+        }
+
         // Validate password length (minimum 6 characters)
         if (password.length < 6) {
             return NextResponse.json(
@@ -28,11 +53,22 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if user already exists
-        const existingUser = await User.findOne({ email: email.toLowerCase() });
-        if (existingUser) {
+        // Check if user already exists by email
+        const existingUserByEmail = await User.findOne({ email: email.toLowerCase() });
+        if (existingUserByEmail) {
             return NextResponse.json(
                 { ok: false, error: "Dit e-mailadres is al geregistreerd" },
+                { status: 400 }
+            );
+        }
+
+        // Check if username is already taken (case-insensitive)
+        const existingUserByUsername = await User.findOne({ 
+            username: { $regex: new RegExp(`^${trimmedUsername}$`, "i") }
+        });
+        if (existingUserByUsername) {
+            return NextResponse.json(
+                { ok: false, error: "Deze gebruikersnaam is al in gebruik" },
                 { status: 400 }
             );
         }
@@ -43,12 +79,32 @@ export async function POST(request: Request) {
         // Create new user
         const user = new User({
             email: email.toLowerCase(),
-            username: username,
+            username: trimmedUsername,
             password: hashedPassword,
         });
 
         // Save user to database
-        await user.save();
+        try {
+            await user.save();
+        } catch (error: any) {
+            // Handle duplicate key errors (shouldn't happen due to pre-checks, but handle just in case)
+            if (error.code === 11000) {
+                const duplicateField = Object.keys(error.keyPattern || {})[0];
+                if (duplicateField === 'username') {
+                    return NextResponse.json(
+                        { ok: false, error: "Deze gebruikersnaam is al in gebruik" },
+                        { status: 400 }
+                    );
+                }
+                if (duplicateField === 'email') {
+                    return NextResponse.json(
+                        { ok: false, error: "Dit e-mailadres is al geregistreerd" },
+                        { status: 400 }
+                    );
+                }
+            }
+            throw error;
+        }
 
         // Registration successful!
         return NextResponse.json(
