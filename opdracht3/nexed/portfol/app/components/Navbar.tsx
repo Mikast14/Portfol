@@ -1,20 +1,74 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect, useRef } from "react";
 
 const Navbar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDropdownRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
     { label: "Explore", href: "/explore" },
     { label: "Profile", href: "/profile" },
   ];
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("recentSearches");
+    if (stored) {
+      try {
+        const searches = JSON.parse(stored);
+        setRecentSearches(Array.isArray(searches) ? searches : []);
+      } catch (error) {
+        console.error("Error parsing recent searches:", error);
+      }
+    }
+  }, []);
+
+  // Prevent autofill on search input - aggressive prevention for all password managers
+  useEffect(() => {
+    if (searchInputRef.current) {
+      const input = searchInputRef.current;
+      // Set autofill prevention attributes programmatically for all major password managers
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('data-lpignore', 'true');
+      input.setAttribute('data-1p-ignore', 'true');
+      input.setAttribute('data-bwignore', 'true');
+      input.setAttribute('data-dashlane-ignore', 'true');
+      input.setAttribute('data-lastpass-ignore', 'true');
+      input.setAttribute('data-bitwarden-watching', 'false');
+      input.setAttribute('data-autocomplete', 'off');
+      input.setAttribute('data-chrome-autocomplete', 'off');
+      input.setAttribute('data-safari-autocomplete', 'off');
+      input.setAttribute('data-edge-autocomplete', 'off');
+      // Explicitly tell password managers this is NOT a username or password field
+      input.setAttribute('data-not-username', 'true');
+      input.setAttribute('data-not-password', 'true');
+      // Prevent password managers from detecting this as a login field
+      input.setAttribute('data-form-type', 'other');
+      // Force readonly initially to prevent autofill on page load
+      input.setAttribute('readonly', 'readonly');
+      
+      // Also prevent autofill on the form element
+      const form = input.closest('form');
+      if (form) {
+        form.setAttribute('autocomplete', 'off');
+        form.setAttribute('data-lpignore', 'true');
+        form.setAttribute('data-1p-ignore', 'true');
+        form.setAttribute('data-bwignore', 'true');
+      }
+    }
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -22,20 +76,60 @@ const Navbar = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
     };
 
-    if (isDropdownOpen) {
+    if (isDropdownOpen || isSearchFocused) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isDropdownOpen]);
+  }, [isDropdownOpen, isSearchFocused]);
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
     logout();
+  };
+
+  const saveSearchToHistory = (query: string) => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
+
+    setRecentSearches((prev) => {
+      // Remove duplicates and add to beginning
+      const updated = [trimmedQuery, ...prev.filter((s) => s !== trimmedQuery)];
+      // Keep only last 4 searches
+      const limited = updated.slice(0, 4);
+      // Save to localStorage
+      localStorage.setItem("recentSearches", JSON.stringify(limited));
+      return limited;
+    });
+  };
+
+  const handleSearch = (e: React.FormEvent, query?: string) => {
+    e.preventDefault();
+    const searchTerm = query || searchQuery.trim();
+    if (searchTerm) {
+      saveSearchToHistory(searchTerm);
+      router.push(`/explore?search=${encodeURIComponent(searchTerm)}`);
+      setSearchQuery("");
+      setIsSearchFocused(false);
+    }
+  };
+
+  const handleRecentSearchClick = (query: string) => {
+    setSearchQuery(query);
+    handleSearch(new Event("submit") as any, query);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch(e);
+    }
   };
 
   return (
@@ -69,28 +163,202 @@ const Navbar = () => {
           />
         </Link>
         <div className="flex items-center gap-6 text-sm font-medium justify-self-end shrink-0">
-          <div className="relative group flex items-center">
-            <button aria-label="Search" className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 30 30"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-7 w-7 text-black transition-transform duration-200 group-hover:scale-110 group-focus-within:scale-110"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </button>
-            <input
-              type="text"
-              placeholder="Search..."
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-0 opacity-0 pointer-events-none group-hover:w-48 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:w-48 group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-all duration-300 ease-out bg-white border border-gray-300 text-black rounded-full pl-4 pr-10 py-1 text-sm shadow focus:outline-none"
+          <form onSubmit={handleSearch} autoComplete="off" role="search" className="relative flex items-center group" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+            {/* Hidden fake fields to prevent browser autofill - placed BEFORE search input */}
+            <input 
+              type="text" 
+              name="username" 
+              autoComplete="username" 
+              tabIndex={-1} 
+              aria-hidden="true"
+              readOnly
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} 
             />
-          </div>
+            <input 
+              type="email" 
+              name="email" 
+              autoComplete="email" 
+              tabIndex={-1} 
+              aria-hidden="true"
+              readOnly
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} 
+            />
+            <input 
+              type="password" 
+              name="password" 
+              autoComplete="new-password" 
+              tabIndex={-1} 
+              aria-hidden="true"
+              readOnly
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} 
+            />
+            {/* Additional fake field to confuse password managers */}
+            <input 
+              type="text" 
+              name="not-a-password-field" 
+              autoComplete="off" 
+              tabIndex={-1} 
+              aria-hidden="true"
+              readOnly
+              data-lpignore="true"
+              data-1p-ignore="true"
+              data-bwignore="true"
+              style={{ position: 'absolute', left: '-9999px', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} 
+            />
+            <div ref={searchDropdownRef} className="relative">
+              <div className={`relative flex items-center h-10 transition-all duration-300 ease-out overflow-hidden ${
+                isSearchFocused || searchQuery 
+                  ? "w-72" 
+                  : "w-10 group-hover:w-72"
+              }`}>
+                <div className={`absolute inset-0 rounded-full bg-gray-50/80 backdrop-blur-sm border-2 transition-all duration-300 ${
+                  isSearchFocused 
+                    ? "border-accent shadow-lg shadow-accent/20 bg-white" 
+                    : "border-transparent group-hover:border-gray-200 group-hover:bg-white"
+                }`} />
+                <div className="relative flex items-center w-full h-full pl-1">
+                  <button 
+                    type="submit"
+                    aria-label="Search" 
+                    className={`relative z-10 p-2 rounded-full transition-all duration-200 flex-shrink-0 ${
+                      isSearchFocused || searchQuery
+                        ? "text-accent"
+                        : "text-gray-400 hover:text-gray-600"
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.35-4.35" />
+                    </svg>
+                  </button>
+                  <input
+                    ref={searchInputRef}
+                    type="search"
+                    name="q"
+                    id="search-input"
+                    role="searchbox"
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    data-form-type="other"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    data-dashlane-ignore="true"
+                    data-lastpass-ignore="true"
+                    data-bitwarden-watching="false"
+                    data-autocomplete="off"
+                    data-chrome-autocomplete="off"
+                    data-safari-autocomplete="off"
+                    data-edge-autocomplete="off"
+                    data-not-username="true"
+                    data-not-password="true"
+                    inputMode="search"
+                    placeholder="Search projects or GitHub users..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                    }}
+                    onKeyDown={handleSearchKeyDown}
+                    onFocus={(e) => {
+                      setIsSearchFocused(true);
+                      // Aggressively prevent autofill
+                      const input = e.currentTarget;
+                      // Temporarily change type to confuse password managers
+                      const originalType = input.type;
+                      input.type = 'text';
+                      input.setAttribute('autocomplete', 'off');
+                      input.setAttribute('data-lpignore', 'true');
+                      input.setAttribute('data-1p-ignore', 'true');
+                      input.setAttribute('data-bwignore', 'true');
+                      input.setAttribute('data-dashlane-ignore', 'true');
+                      input.setAttribute('data-lastpass-ignore', 'true');
+                      input.setAttribute('data-bitwarden-watching', 'false');
+                      input.setAttribute('data-not-username', 'true');
+                      input.setAttribute('data-not-password', 'true');
+                      // Restore type after a brief moment
+                      setTimeout(() => {
+                        input.type = originalType;
+                        // Delay removing readonly to prevent autofill
+                        setTimeout(() => {
+                          input.removeAttribute('readonly');
+                        }, 50);
+                      }, 100);
+                    }}
+                    onBlur={() => {
+                      // Delay to allow click events to fire
+                      setTimeout(() => setIsSearchFocused(false), 200);
+                    }}
+                    onMouseDown={(e) => {
+                      // Prevent autofill on click
+                      const input = e.currentTarget;
+                      input.setAttribute('autocomplete', 'off');
+                      input.removeAttribute('readonly');
+                    }}
+                    readOnly
+                    className={`relative z-10 flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder-gray-400 transition-all duration-300 h-full ${
+                      isSearchFocused || searchQuery 
+                        ? "opacity-100 pointer-events-auto pr-4" 
+                        : "opacity-0 pointer-events-none pr-0 w-0 group-hover:opacity-100 group-hover:pointer-events-auto group-hover:pr-4 group-hover:w-auto"
+                    }`}
+                  />
+                </div>
+              </div>
+              
+              {/* Recent Searches Dropdown */}
+              {isSearchFocused && recentSearches.length > 0 && (
+                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-3 py-2 border-b border-gray-100">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recent Searches</p>
+                  </div>
+                  <div className="py-1 max-h-64 overflow-y-auto">
+                    {recentSearches.map((search, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => handleRecentSearchClick(search)}
+                        className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3 group/item"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-4 w-4 text-gray-400 group-hover/item:text-accent transition-colors flex-shrink-0"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <span className="truncate flex-1">{search}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </form>
 
           {loading ? (
             <div className="text-sm text-gray-500">Laden...</div>
