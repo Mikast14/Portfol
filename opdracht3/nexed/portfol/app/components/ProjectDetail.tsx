@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import CommentsSection from "./CommentsSection";
+import { Lumanosimo } from "next/font/google";
 
 type ActiveStatusMode = "auto" | "active" | "inactive" | "hide";
 type DisplayMode = "auto" | "hide";
@@ -98,6 +99,8 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
   const [error, setError] = useState<string | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
+  const thumbnailScrollRef = useRef<HTMLDivElement>(null);
+  const carouselIntervalRef = useRef<number | null>(null);
   const [contributors, setContributors] = useState<{
     id: number;
     login: string;
@@ -125,8 +128,45 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
   }>(null);
   const [repoLoading, setRepoLoading] = useState(false);
   const [repoError, setRepoError] = useState<string | null>(null);
-  const thumbnailScrollRef = useRef<HTMLDivElement>(null);
-  const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // NEW: languages state (cached 20 min)
+  const [languages, setLanguages] = useState<{ name: string; bytes: number; percent: number }[]>([]);
+  const [languagesLoading, setLanguagesLoading] = useState(false);
+  const [languagesError, setLanguagesError] = useState<string | null>(null);
+
+  // Language color map (fallback to deterministic HSL for unknown languages)
+  const languageColors: Record<string, string> = {
+    TypeScript: "#3178c6",
+    JavaScript: "#f1e05a",
+    Python: "#3572A5",
+    Java: "#b07219",
+    C: "#555555",
+    "C#": "#178600",
+    "C++": "#f34b7d",
+    Go: "#00ADD8",
+    Ruby: "#701516",
+    PHP: "#4F5D95",
+    Rust: "#dea584",
+    Kotlin: "#A97BFF",
+    Swift: "#F05138",
+    Dart: "#00B4AB",
+    Shell: "#89e051",
+    HTML: "#e34c26",
+    CSS: "#563d7c",
+    SCSS: "#c6538c",
+    SASS: "#a53b70",
+    Vue: "#41b883",
+    Svelte: "#ff3e00",
+    Solidity: "#AA6746",
+    Lua: "#000080",
+  };
+  const hash = (s: string) => {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
+    return h;
+  };
+  const langColor = (lang: string) =>
+    languageColors[lang] || `hsl(${Math.abs(hash(lang)) % 360} 70% 50%)`;
 
   // Logo is stored separately in image field, subimages are in images array
   const logo = project?.image || null;
@@ -528,6 +568,61 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
     })();
   }, [project?.githubRepo, settings.activeStatus, settings.stars, settings.forks, settings.language]);
 
+  // NEW: fetch all repo languages and cache for 20 minutes
+  useEffect(() => {
+    if (settings.language !== "auto") {
+      setLanguages([]);
+      return;
+    }
+    if (!project?.githubRepo) return;
+
+    const parsed = parseRepo(project.githubRepo);
+    if (!parsed) return;
+
+    const { owner, repo } = parsed;
+    const storageKey = `repoLangs:${owner}/${repo}`;
+    const ttlMs = 20 * 60 * 1000;
+    const now = Date.now();
+
+    try {
+      const cachedRaw = localStorage.getItem(storageKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached.timestamp && now - cached.timestamp < ttlMs && cached.data) {
+          setLanguages(cached.data);
+          return;
+        }
+      }
+    } catch {}
+
+    (async () => {
+      setLanguagesLoading(true);
+      setLanguagesError(null);
+      try {
+        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`);
+        if (!res.ok) throw new Error(`GitHub error ${res.status}`);
+        const langs: Record<string, number> = await res.json();
+        const total = Object.values(langs).reduce((a, b) => a + b, 0);
+        const items = Object.entries(langs)
+          .map(([name, bytes]) => ({
+            name,
+            bytes,
+            percent: total > 0 ? (bytes / total) * 100 : 0,
+          }))
+          .sort((a, b) => b.bytes - a.bytes);
+
+        setLanguages(items);
+        try {
+          localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: items }));
+        } catch {}
+      } catch (e: unknown) {
+        setLanguagesError(e instanceof Error ? e.message : "Failed to load languages");
+      } finally {
+        setLanguagesLoading(false);
+      }
+    })();
+  }, [project?.githubRepo, settings.language]);
+
   if (loading) {
     return (
       <div className="bg-white rounded-large p-8 shadow-elevated">
@@ -730,294 +825,254 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
               <p className="text-gray-600 leading-relaxed text-sm">{project.description}</p>
             </div>
 
-            {/* Metadata Section */}
-            <div className="space-y-4 pt-4 border-t border-gray-200">
-              {/* User Info */}
-              {project.userId?.username && (
-                <div>
-                  <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Created by</div>
-                  <Link
-                    href={`/user/${project.userId.username}`}
-                    className="flex items-center gap-3 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors group"
-                  >
-                    {project.userId.profileImage ? (
-                      <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                        <Image
-                          src={project.userId.profileImage}
-                          alt={project.userId.username}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary-hover flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-bold text-white">
-                          {project.userId.username.charAt(0).toUpperCase()}
+            {/* GitHub Stats */}
+            {(settings.activeStatus !== "hide" ||
+              settings.language === "auto" ||
+              settings.stars === "auto" ||
+              settings.forks === "auto") && (
+              <div>
+                <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">GitHub Stats</div>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {(settings.activeStatus === "auto" ||
+                    settings.stars === "auto" ||
+                    settings.forks === "auto" ||
+                    settings.language === "auto") && (
+                      <>
+                        {repoLoading && <span className="text-gray-500">Loading repository info...</span>}
+                        {repoError && <span className="text-red-500">{repoError}</span>}
+                      </>
+                    )}
+
+                  {/* Active/Inactive Status */}
+                  {settings.activeStatus !== "hide" && (() => {
+                    if (settings.activeStatus === "auto" && repoInfo) {
+                      const repoUpdatedTime = new Date(repoInfo.updated_at).getTime();
+                      const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                      const active = repoUpdatedTime > fourteenDaysAgo;
+                      return (
+                        <span className={`px-2 py-1 rounded-full ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                          {active ? "Active" : "Inactive"}
                         </span>
-                      </div>
-                    )}
-                    <span className="text-sm font-medium text-gray-900 group-hover:text-accent transition-colors">
-                      {project.userId.username}
-                    </span>
-                    <svg className="w-4 h-4 text-gray-400 group-hover:text-accent transition-colors ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Link>
-                </div>
-              )}
-              <div>
-                <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Release Date</div>
-                <div className="text-gray-700 text-sm">
-                  {(() => {
-                    const date = new Date(project.createdAt);
-                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+                      );
+                    } else if (settings.activeStatus === "active") {
+                      return <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">Active</span>;
+                    } else if (settings.activeStatus === "inactive") {
+                      return <span className="px-2 py-1 rounded-full bg-red-100 text-red-800">Inactive</span>;
+                    }
+                    return null;
                   })()}
+
+                  {/* Stars */}
+                  {settings.stars === "auto" && repoInfo && (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">⭐ {repoInfo.stargazers_count}</span>
+                  )}
+
+                  {/* Forks */}
+                  {settings.forks === "auto" && repoInfo && (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">🔄 {repoInfo.forks_count}</span>
+                  )}
                 </div>
-              </div>
-              <div>
-                <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Platforms</div>
-                <div className="flex flex-wrap gap-2">
-                  {project.platforms.map((platform) => (
-                    <div
-                      key={platform}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-xs capitalize transition-colors"
-                    >
-                      {platformIcons[platform] || (
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                          <circle cx="12" cy="12" r="10" />
-                        </svg>
-                      )}
-                      {platform}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* GitHub Stats */}
-              {(settings.activeStatus !== "hide" ||
-                settings.language === "auto" ||
-                settings.stars === "auto" ||
-                settings.forks === "auto") && (
-                <div>
-                  <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">GitHub Stats</div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    {(settings.activeStatus === "auto" ||
-                      settings.stars === "auto" ||
-                      settings.forks === "auto" ||
-                      settings.language === "auto") && (
-                        <>
-                          {repoLoading && <span className="text-gray-500">Loading repository info...</span>}
-                          {repoError && <span className="text-red-500">{repoError}</span>}
-                        </>
-                      )}
-                    {/* Active/Inactive Status */}
-                    {settings.activeStatus !== "hide" && (() => {
-                      if (settings.activeStatus === "auto" && repoInfo) {
-                        // Use a consistent calculation that works on both server and client
-                        const repoUpdatedTime = new Date(repoInfo.updated_at).getTime();
-                        const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
-                        const active = repoUpdatedTime > fourteenDaysAgo;
-                        return (
-                          <span
-                            className={`px-2 py-1 rounded-full ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                              }`}
-                          >
-                            {active ? "Active" : "Inactive"}
+
+                {/* NEW: Language bar (all languages) */}
+                {settings.language === "auto" && (
+                  <div className="mt-3">
+                    {languagesLoading && <p className="text-xs text-gray-500">Loading languages...</p>}
+                    {languagesError && <p className="text-xs text-red-500">{languagesError}</p>}
+                    {languages.length > 0 ? (
+                      <>
+                        <div className="w-full h-3 rounded-full overflow-hidden border border-gray-200">
+                          <div className="flex w-full h-full">
+                            {languages.map((l) => (
+                              <div
+                                key={l.name}
+                                className="h-full"
+                                style={{ width: `${l.percent}%`, backgroundColor: langColor(l.name) }}
+                                title={`${l.name} ${Math.round(l.percent)}%`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {languages.map((l) => (
+                            <span key={l.name} className="inline-flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-full text-xs">
+                              <span
+                                className="inline-block w-2 h-2 rounded-full"
+                                style={{ backgroundColor: langColor(l.name) }}
+                              />
+                              <span className="text-gray-800">{l.name}</span>
+                              <span className="text-gray-500">{Math.round(l.percent)}%</span>
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      // Fallback to primary language tag if languages API returns nothing
+                      repoInfo?.language && (
+                        <div className="mt-2">
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                            {repoInfo.language}
                           </span>
-                        );
-                      } else if (settings.activeStatus === "active") {
-                        return (
-                          <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">
-                            Active
-                          </span>
-                        );
-                      } else if (settings.activeStatus === "inactive") {
-                        return (
-                          <span className="px-2 py-1 rounded-full bg-red-100 text-red-800">
-                            Inactive
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                    {/* Language */}
-                    {settings.language === "auto" && repoInfo?.language && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
-                        {repoInfo.language}
-                      </span>
-                    )}
-                    {/* Stars */}
-                    {settings.stars === "auto" && repoInfo && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
-                        ⭐ {repoInfo.stargazers_count}
-                      </span>
-                    )}
-                    {/* Forks */}
-                    {settings.forks === "auto" && repoInfo && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
-                        🔄 {repoInfo.forks_count}
-                      </span>
+                        </div>
+                      )
                     )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
-              {/* Contributors */}
-              {settings.contributors === "auto" && (
-                <div>
-                  <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Top Contributors</div>
-                  {contributorsLoading && (
-                    <p className="text-xs text-gray-500">Loading contributors...</p>
-                  )}
-                  {contributorsError && (
-                    <p className="text-xs text-red-500">{contributorsError}</p>
-                  )}
-                  {!contributorsLoading && !contributorsError && contributors.length === 0 && (
-                    <p className="text-xs text-gray-400">No contributors found.</p>
-                  )}
-                  {contributors.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {contributors.map(c => (
-                        <a
-                          key={c.id}
-                          href={c.html_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs transition-colors"
-                          title={`${c.login} (${c.contributions} contributions)`}
+            {/* Contributors */}
+            {settings.contributors === "auto" && (
+              <div>
+                <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Top Contributors</div>
+                {contributorsLoading && (
+                  <p className="text-xs text-gray-500">Loading contributors...</p>
+                )}
+                {contributorsError && (
+                  <p className="text-xs text-red-500">{contributorsError}</p>
+                )}
+                {!contributorsLoading && !contributorsError && contributors.length === 0 && (
+                  <p className="text-xs text-gray-400">No contributors found.</p>
+                )}
+                {contributors.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {contributors.map(c => (
+                      <a
+                        key={c.id}
+                        href={c.html_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs transition-colors"
+                        title={`${c.login} (${c.contributions} contributions)`}
+                      >
+                        <img
+                          src={c.avatar_url}
+                          alt={c.login}
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                        <span className="text-black">{c.login}</span>
+                        <span className="text-gray-500">({c.contributions})</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-2 text-[10px] text-gray-400">
+                  Updated every 20 minutes.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
+            {/* Like and Bookmark buttons side by side */}
+            {(isAuthenticated && project.userId?._id && user?.id && project.userId._id.toString() !== user.id) || isAuthenticated ? (
+              <div className="flex gap-3">
+                {isAuthenticated && project.userId?._id && user?.id && project.userId._id.toString() !== user.id && (
+                  <button
+                    onClick={handleLike}
+                    disabled={likeLoading}
+                    className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
+                      isLiked
+                        ? "bg-accent hover:bg-primary-hover text-white"
+                        : "bg-gray-200 hover:bg-gray-300 text-black"
+                    } disabled:cursor-not-allowed disabled:opacity-70`}
+                  >
+                    {likeLoading ? (
+                      <>
+                        <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                          <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill={isLiked ? "currentColor" : "none"}
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
                         >
-                          <img
-                            src={c.avatar_url}
-                            alt={c.login}
-                            className="w-5 h-5 rounded-full object-cover"
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
                           />
-                          <span className="text-black">{c.login}</span>
-                          <span className="text-gray-500">({c.contributions})</span>
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                  <p className="mt-2 text-[10px] text-gray-400">
-                    Updated every 20 minutes.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
-              {/* Like and Bookmark buttons side by side */}
-              {(isAuthenticated && project.userId?._id && user?.id && project.userId._id.toString() !== user.id) || isAuthenticated ? (
-                <div className="flex gap-3">
-                  {isAuthenticated && project.userId?._id && user?.id && project.userId._id.toString() !== user.id && (
-                    <button
-                      onClick={handleLike}
-                      disabled={likeLoading}
-                      className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
-                        isLiked
-                          ? "bg-accent hover:bg-primary-hover text-white"
-                          : "bg-gray-200 hover:bg-gray-300 text-black"
-                      } disabled:cursor-not-allowed disabled:opacity-70`}
-                    >
-                      {likeLoading ? (
-                        <>
-                          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                          </svg>
-                          {isLiked ? "Unliking..." : "Liking..."}
-                        </>
-                      ) : (
-                        <>
-                          <svg
-                            className="w-5 h-5"
-                            fill={isLiked ? "currentColor" : "none"}
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                            />
-                          </svg>
-                          {isLiked ? `Liked (${likesCount})` : `Like (${likesCount})`}
-                        </>
-                      )}
-                    </button>
-                  )}
-                  {isAuthenticated && (
-                    <button
-                      onClick={handleBookmark}
-                      disabled={bookmarkLoading}
-                      className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
-                        isBookmarked
-                          ? "bg-accent hover:bg-primary-hover text-white"
-                          : "bg-gray-200 hover:bg-gray-300 text-black"
-                      } disabled:cursor-not-allowed disabled:opacity-70`}
-                    >
-                      {bookmarkLoading ? (
-                        <>
-                          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                          </svg>
-                        </>
-                      ) : (
-                        <>
-                          <svg
-                            className="w-5 h-5"
-                            fill={isBookmarked ? "currentColor" : "none"}
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                            />
-                          </svg>
-                          {isBookmarked ? "Bookmarked" : "Bookmark"}
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ) : null}
-              <a
-                href={githubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                </svg>
-                View on GitHub
-              </a>
-              <Link
-                href={
-                  fromYourProjects 
-                    ? "/yourprojects" 
-                    : fromProfile && username 
-                    ? `/user/${encodeURIComponent(username)}` 
-                    : "/explore"
-                }
-                className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                {fromYourProjects 
-                  ? "Back to Your Projects" 
+                        </svg>
+                        {isLiked ? `Liked (${likesCount})` : `Like (${likesCount})`}
+                      </>
+                    )}
+                  </button>
+                )}
+                {isAuthenticated && (
+                  <button
+                    onClick={handleBookmark}
+                    disabled={bookmarkLoading}
+                    className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
+                      isBookmarked
+                        ? "bg-accent hover:bg-primary-hover text-white"
+                        : "bg-gray-200 hover:bg-gray-300 text-black"
+                    } disabled:cursor-not-allowed disabled:opacity-70`}
+                  >
+                    {bookmarkLoading ? (
+                      <>
+                        <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                          <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill={isBookmarked ? "currentColor" : "none"}
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                          />
+                        </svg>
+                        {isBookmarked ? "Bookmarked" : "Bookmark"}
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            ) : null}
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+              </svg>
+              View on GitHub
+            </a>
+            <Link
+              href={
+                fromYourProjects 
+                  ? "/yourprojects" 
                   : fromProfile && username 
-                  ? "Back to Profile" 
-                  : "Back to Explore"}
-              </Link>
-            </div>
+                  ? `/user/${encodeURIComponent(username)}` 
+                  : "/explore"
+              }
+              className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {fromYourProjects 
+                ? "Back to Your Projects" 
+                : fromProfile && username 
+                ? "Back to Profile" 
+                : "Back to Explore"}
+            </Link>
           </div>
         </div>
       </div>
