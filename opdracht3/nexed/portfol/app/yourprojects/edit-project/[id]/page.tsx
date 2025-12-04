@@ -543,14 +543,14 @@ export default function EditProject() {
             <div className="bg-white rounded-large shadow-elevated p-6">
               <div className="space-y-6">
                 {/* Logo Above Title */}
-                <div className="relative w-full max-w-32 mx-auto">
+                <div className="relative w-full">
                   {logo ? (
-                    <div className="relative w-full bg-gray-200 rounded-base overflow-hidden group" style={{ aspectRatio: "1 / 1" }}>
+                    <div className="relative w-full bg-gray-200 rounded-base overflow-hidden group mb-2" style={{ aspectRatio: "16 / 9" }}>
                       <Image
                         src={logo}
                         alt={`${name || project.name} logo`}
                         fill
-                        className="object-contain"
+                        className="object-cover"
                       />
                     </div>
                   ) : null}
@@ -559,7 +559,7 @@ export default function EditProject() {
                     value={mainImageUrl}
                     onChange={(e) => setMainImageUrl(e.target.value)}
                     placeholder="Logo URL (optional)"
-                    className="w-full mt-2 px-3 py-2 border-2 border-accent rounded-base text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    className="w-full px-3 py-2 border-2 border-accent rounded-base text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
                 </div>
 

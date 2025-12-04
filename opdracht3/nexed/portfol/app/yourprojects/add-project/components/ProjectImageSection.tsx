@@ -81,7 +81,7 @@ export default function ProjectImageSection({
             />
             {mainImagePreview && (
               <div className="relative group">
-                <div className="relative w-full max-w-md h-64 rounded-base overflow-hidden bg-gray-100 border-2 border-accent">
+                <div className="relative w-full rounded-base overflow-hidden bg-gray-100 border-2 border-accent" style={{ aspectRatio: "16 / 9" }}>
                   <img src={mainImagePreview} alt="Main preview" className="w-full h-full object-cover" />
                   <button
                     type="button"

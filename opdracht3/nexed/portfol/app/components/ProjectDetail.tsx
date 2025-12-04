@@ -100,7 +100,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
-  const carouselIntervalRef = useRef<number | null>(null);
+  const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [contributors, setContributors] = useState<{
     id: number;
     login: string;
@@ -478,9 +478,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setContributorsError(null);
       try {
         // Try API route first
-        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contributors?per_page=10`);
-        let data;
-        
+        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contributors?per_page=10`);     
         if (!res.ok) {
           // Fallback to direct GitHub API call
           const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
@@ -514,7 +512,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           return;
         }
         
-        data = await res.json();
+        const data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load contributors");
         }
@@ -576,8 +574,6 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       try {
         // Try API route first
         let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
-        let data;
-        
         if (!res.ok) {
           // Fallback to direct GitHub API call
           const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
@@ -610,7 +606,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           return;
         }
         
-        data = await res.json();
+        const data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load repository info");
         }
@@ -659,9 +655,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setLanguagesError(null);
       try {
         // Try API route first
-        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`);
-        let data;
-        
+        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`); 
         if (!res.ok) {
           // Fallback to direct GitHub API call
           const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
@@ -693,7 +687,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           return;
         }
         
-        data = await res.json();
+        const data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load languages");
         }
@@ -892,12 +886,12 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           <div className="space-y-6">
             {/* Logo Above Title */}
             {logo && (
-              <div className="relative w-full max-w-32 mx-auto bg-gray-200 rounded-base overflow-hidden" style={{ aspectRatio: "1 / 1" }}>
+              <div className="relative w-full bg-gray-200 rounded-base overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
                 <Image
                   src={logo}
                   alt={`${project.name} logo`}
                   fill
-                  className="object-contain"
+                  className="object-cover"
                 />
               </div>
             )}
