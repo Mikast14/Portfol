@@ -15,7 +15,7 @@ export async function GET(
 
     // Handle both Promise and direct params (for Next.js 13.4+ compatibility)
     const resolvedParams = params instanceof Promise ? await params : params;
-    const { username } = resolvedParams;
+    let { username } = resolvedParams;
 
     if (!username) {
       return NextResponse.json(
@@ -24,12 +24,40 @@ export async function GET(
       );
     }
 
+    // Decode the username in case it's URL encoded (Next.js may or may not decode it)
+    try {
+      // Only decode if it contains encoded characters
+      if (username.includes('%')) {
+        username = decodeURIComponent(username);
+      }
+    } catch (e) {
+      // If decoding fails, use the original username
+      console.warn("Failed to decode username, using as-is:", username);
+    }
+    username = username.trim();
+
+    console.log("Looking for user with username:", username);
+
+    // Escape special regex characters in username for safe regex matching
+    const escapedUsername = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     // Find user by username (case-insensitive)
+    // Use regex for case-insensitive matching
     const user = await User.findOne({ 
-      username: { $regex: new RegExp(`^${username}$`, "i") } 
+      username: { $regex: new RegExp(`^${escapedUsername}$`, "i") } 
     }).select("-password");
 
     if (!user) {
+      // Log for debugging - check if any users exist with similar usernames
+      // Escape special regex characters for safe partial matching
+      const escapedForPartial = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const similarUsers = await User.find({
+        username: { $regex: new RegExp(escapedForPartial, "i") }
+      }).select("username").limit(5);
+      
+      console.log("User not found. Searched for:", username);
+      console.log("Similar usernames found:", similarUsers.map(u => u.username));
+      
       return NextResponse.json(
         { ok: false, error: "User not found" },
         { status: 404 }

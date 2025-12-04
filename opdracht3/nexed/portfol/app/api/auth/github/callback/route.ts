@@ -157,18 +157,25 @@ export async function GET(request: Request) {
             if (existingUser) {
                 // Link GitHub account to existing user
                 existingUser.githubId = githubUser.id.toString();
-                existingUser.profileImage = githubUser.avatar_url || existingUser.profileImage;
+                // Only set GitHub profile image if user doesn't have a custom one
+                if (!existingUser.profileImage && githubUser.avatar_url) {
+                    existingUser.profileImage = githubUser.avatar_url;
+                }
                 await existingUser.save();
                 user = existingUser;
             } else {
-                // Check if username is already taken
+                // Check if username is already taken (case-insensitive)
                 let username = githubUser.login;
-                let usernameTaken = await User.findOne({ username });
+                let usernameTaken = await User.findOne({ 
+                    username: { $regex: new RegExp(`^${username}$`, "i") }
+                });
                 
                 // If username is taken, append a number
                 if (usernameTaken) {
                     let counter = 1;
-                    while (await User.findOne({ username: `${githubUser.login}${counter}` })) {
+                    while (await User.findOne({ 
+                        username: { $regex: new RegExp(`^${githubUser.login}${counter}$`, "i") }
+                    })) {
                         counter++;
                     }
                     username = `${githubUser.login}${counter}`;
@@ -195,8 +202,10 @@ export async function GET(request: Request) {
                 }
             }
         } else {
-            // Update profile image if it exists and is different
-            if (githubUser.avatar_url && user.profileImage !== githubUser.avatar_url) {
+            // User already exists with GitHub ID - don't update profile image
+            // This preserves any custom profile image the user has set
+            // Only set GitHub avatar if user doesn't have a profile image
+            if (!user.profileImage && githubUser.avatar_url) {
                 user.profileImage = githubUser.avatar_url;
                 await user.save();
             }

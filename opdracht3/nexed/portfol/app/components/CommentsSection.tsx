@@ -19,6 +19,8 @@ export default function CommentsSection({ projectId }: { projectId: string }) {
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isProjectOwner, setIsProjectOwner] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   useEffect(() => {
     if (!projectId) return;
@@ -31,6 +33,35 @@ export default function CommentsSection({ projectId }: { projectId: string }) {
     };
     load();
   }, [projectId]);
+
+  // Check if user owns the project
+  useEffect(() => {
+    if (!projectId || !isAuthenticated || !user) {
+      setIsProjectOwner(false);
+      return;
+    }
+    
+    const checkOwnership = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        
+        const res = await fetch(`/api/projects?id=${projectId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (data.ok && data.data?.userId?._id) {
+          setIsProjectOwner(String(data.data.userId._id) === String(user.id));
+        }
+      } catch (error) {
+        console.error("Error checking project ownership:", error);
+      }
+    };
+    
+    checkOwnership();
+  }, [projectId, isAuthenticated, user]);
 
   const handleAdd = async () => {
     if (!draft.trim() || !isAuthenticated) return;
@@ -85,16 +116,61 @@ export default function CommentsSection({ projectId }: { projectId: string }) {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (!isAuthenticated || !isProjectOwner) return;
+    
+    if (!confirm("Are you sure you want to delete all comments on this project? This action cannot be undone.")) {
+      return;
+    }
+    
+    setDeletingAll(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const res = await fetch(`/api/projects/${projectId}/comments?deleteAll=true`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        setComments([]);
+      } else {
+        console.error("Error deleting all comments:", data.error);
+        alert(data.error || "Failed to delete all comments");
+      }
+    } catch (error) {
+      console.error("Error deleting all comments:", error);
+      alert("Failed to delete all comments");
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   return (
     <section id="comments" className="bg-white rounded-large shadow-elevated p-6 mt-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-black">Comments</h2>
-        <a href="#comments" className="text-accent hover:text-primary-hover text-sm underline">
-          Jump to comments
-        </a>
+        <div className="flex items-center gap-3">
+          {isProjectOwner && comments.length > 0 && (
+            <button
+              onClick={handleDeleteAll}
+              disabled={deletingAll}
+              className="text-sm text-red-600 hover:text-red-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deletingAll ? "Deleting..." : "Delete All Comments"}
+            </button>
+          )}
+          <a href="#comments" className="text-accent hover:text-primary-hover text-sm underline">
+            Jump to comments
+          </a>
+        </div>
       </div>
 
-      {isAuthenticated ? (
+      {isAuthenticated && !isProjectOwner ? (
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Add a comment</label>
           <textarea
@@ -115,6 +191,8 @@ export default function CommentsSection({ projectId }: { projectId: string }) {
             </button>
           </div>
         </div>
+      ) : isProjectOwner ? (
+        <p className="mb-6 text-sm text-gray-600">You cannot comment on your own project.</p>
       ) : (
         <p className="mb-6 text-sm text-gray-600">Log in to post a comment.</p>
       )}
