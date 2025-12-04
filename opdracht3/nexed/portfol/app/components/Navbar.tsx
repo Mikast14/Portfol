@@ -177,7 +177,7 @@ const Navbar = () => {
   };
 
   const handleUserProfileClick = (username: string) => {
-    router.push(`/user/${username}`);
+    router.push(`/user/${encodeURIComponent(username)}`);
     setSearchQuery("");
     setIsSearchFocused(false);
   };

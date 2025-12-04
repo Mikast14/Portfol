@@ -96,9 +96,14 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "Content is required" }, { status: 400 });
     }
 
-    const project = await Project.findById(projectId).select("_id");
+    const project = await Project.findById(projectId).select("userId");
     if (!project) {
       return NextResponse.json({ ok: false, error: "Project not found" }, { status: 404 });
+    }
+
+    // Prevent project owners from commenting on their own projects
+    if (project.userId.toString() === decoded.userId) {
+      return NextResponse.json({ ok: false, error: "You cannot comment on your own project" }, { status: 403 });
     }
 
     const doc = await Comment.create({
@@ -153,7 +158,27 @@ export async function DELETE(
     const projectId = resolved.id;
     const { searchParams } = new URL(request.url);
     const commentId = searchParams.get("commentId");
+    const deleteAll = searchParams.get("deleteAll") === "true";
 
+    // Handle delete all comments
+    if (deleteAll) {
+      // Verify the user owns the project
+      const project = await Project.findById(projectId).select("userId");
+      if (!project) {
+        return NextResponse.json({ ok: false, error: "Project not found" }, { status: 404 });
+      }
+
+      if (project.userId.toString() !== decoded.userId) {
+        return NextResponse.json({ ok: false, error: "You can only delete all comments on your own projects" }, { status: 403 });
+      }
+
+      // Delete all comments for this project
+      await Comment.deleteMany({ projectId });
+
+      return NextResponse.json({ ok: true, message: "All comments deleted successfully" });
+    }
+
+    // Handle delete single comment
     if (!commentId) {
       return NextResponse.json({ ok: false, error: "Comment ID is required" }, { status: 400 });
     }

@@ -62,9 +62,12 @@ export async function POST(request: Request) {
             );
         }
 
+        // Escape special regex characters in username for safe regex matching
+        const escapedUsername = trimmedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         // Check if username is already taken (case-insensitive)
         const existingUserByUsername = await User.findOne({ 
-            username: { $regex: new RegExp(`^${trimmedUsername}$`, "i") }
+            username: { $regex: new RegExp(`^${escapedUsername}$`, "i") }
         });
         if (existingUserByUsername) {
             return NextResponse.json(

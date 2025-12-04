@@ -907,10 +907,10 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
-              {/* Like and Bookmark buttons side by side */}
-              {(isAuthenticated && project.userId?._id && user?.id && project.userId._id.toString() !== user.id) || isAuthenticated ? (
+              {/* Like, Bookmark, and Edit buttons */}
+              {isAuthenticated && (
                 <div className="flex gap-3">
-                  {isAuthenticated && project.userId?._id && user?.id && project.userId._id.toString() !== user.id && (
+                  {project.userId?._id && user?.id && project.userId._id.toString() !== user.id && (
                     <button
                       onClick={handleLike}
                       disabled={likeLoading}
@@ -948,45 +948,55 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                       )}
                     </button>
                   )}
-                  {isAuthenticated && (
-                    <button
-                      onClick={handleBookmark}
-                      disabled={bookmarkLoading}
-                      className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
-                        isBookmarked
-                          ? "bg-accent hover:bg-primary-hover text-white"
-                          : "bg-gray-200 hover:bg-gray-300 text-black"
-                      } disabled:cursor-not-allowed disabled:opacity-70`}
+                  <button
+                    onClick={handleBookmark}
+                    disabled={bookmarkLoading}
+                    className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
+                      isBookmarked
+                        ? "bg-accent hover:bg-primary-hover text-white"
+                        : "bg-gray-200 hover:bg-gray-300 text-black"
+                    } disabled:cursor-not-allowed disabled:opacity-70`}
+                  >
+                    {bookmarkLoading ? (
+                      <>
+                        <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                          <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                        </svg>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill={isBookmarked ? "currentColor" : "none"}
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                          />
+                        </svg>
+                        {isBookmarked ? "Bookmarked" : "Bookmark"}
+                      </>
+                    )}
+                  </button>
+                  {/* Edit button - only show if user owns the project */}
+                  {project.userId?._id && user?.id && project.userId._id.toString() === user.id && (
+                    <Link
+                      href={`/yourprojects/edit-project/${projectId}`}
+                      className="flex-1 bg-accent hover:bg-primary-hover text-white px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                      {bookmarkLoading ? (
-                        <>
-                          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                            <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                          </svg>
-                        </>
-                      ) : (
-                        <>
-                          <svg
-                            className="w-5 h-5"
-                            fill={isBookmarked ? "currentColor" : "none"}
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                            />
-                          </svg>
-                          {isBookmarked ? "Bookmarked" : "Bookmark"}
-                        </>
-                      )}
-                    </button>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </Link>
                   )}
                 </div>
-              ) : null}
+              )}
               <a
                 href={githubUrl}
                 target="_blank"

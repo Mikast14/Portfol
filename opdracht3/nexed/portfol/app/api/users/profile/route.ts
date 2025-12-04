@@ -87,9 +87,12 @@ export async function PUT(request: Request) {
         );
       }
 
+      // Escape special regex characters in username for safe regex matching
+      const escapedUsername = trimmedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
       // Check if username is already taken by another user
       const existingUser = await User.findOne({ 
-        username: { $regex: new RegExp(`^${trimmedUsername}$`, "i") },
+        username: { $regex: new RegExp(`^${escapedUsername}$`, "i") },
         _id: { $ne: userId }
       });
 

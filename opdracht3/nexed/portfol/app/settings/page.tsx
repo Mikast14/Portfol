@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [previewImageError, setPreviewImageError] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -27,8 +28,14 @@ export default function SettingsPage() {
     if (user) {
       setProfileImage(user.profileImage || "");
       setUsername(user.username || "");
+      setPreviewImageError(false);
     }
   }, [user]);
+
+  useEffect(() => {
+    // Reset preview error when profileImage changes
+    setPreviewImageError(false);
+  }, [profileImage]);
 
   const handleUpdateProfileImage = async () => {
     const trimmedImage = profileImage.trim();
@@ -122,10 +129,11 @@ export default function SettingsPage() {
 
       if (data.ok) {
         setMessage({ type: "success", text: "Username updated successfully! ✅" });
-        refreshAuth();
+        // Wait for auth to refresh before redirecting
+        await refreshAuth();
         setTimeout(() => {
           setMessage(null);
-          router.push(`/user/${trimmedUsername}`);
+          router.push(`/user/${encodeURIComponent(trimmedUsername)}`);
         }, 1500);
       } else {
         setMessage({ type: "error", text: data.error || "Failed to update username" });
@@ -236,13 +244,30 @@ export default function SettingsPage() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Image</h2>
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="shrink-0">
-              {user.profileImage ? (
+              {profileImage.trim() && !previewImageError ? (
+                <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200">
+                  <Image
+                    src={profileImage.trim()}
+                    alt={user.username}
+                    fill
+                    className="object-cover"
+                    onError={() => {
+                      setPreviewImageError(true);
+                    }}
+                  />
+                </div>
+              ) : profileImage.trim() && previewImageError ? (
+                <div className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center border-2 border-red-300">
+                  <span className="text-xs font-semibold text-red-600 text-center px-2">
+                    Invalid URL
+                  </span>
+                </div>
+              ) : user.profileImage ? (
                 <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200">
                   <Image
                     src={user.profileImage}
                     alt={user.username}
-                    width={96}
-                    height={96}
+                    fill
                     className="object-cover"
                   />
                 </div>

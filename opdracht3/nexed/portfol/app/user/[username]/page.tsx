@@ -35,7 +35,20 @@ export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
   const usernameParam = params?.username;
-  const username = typeof usernameParam === 'string' ? usernameParam : Array.isArray(usernameParam) ? usernameParam[0] : null;
+  // Next.js automatically decodes URL params, so we get the decoded username
+  let username = typeof usernameParam === 'string' ? usernameParam : Array.isArray(usernameParam) ? usernameParam[0] : null;
+  // Ensure we handle any edge cases with decoding
+  if (username) {
+    try {
+      // If it still contains encoded characters, decode again (shouldn't happen, but safe)
+      if (username.includes('%')) {
+        username = decodeURIComponent(username);
+      }
+    } catch (e) {
+      // If decoding fails, use as-is
+      console.warn("Failed to decode username param:", username);
+    }
+  }
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
