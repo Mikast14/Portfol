@@ -20,12 +20,14 @@ export async function GET(
 
     const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
       headers,
-      next: { revalidate: 1200 }, // Cache for 20 minutes
+      cache: "no-store", // Don't cache to avoid stale data
     });
 
     if (!res.ok) {
+      const errorText = await res.text().catch(() => "");
+      console.error(`GitHub API error ${res.status} for ${owner}/${repo}:`, errorText);
       return NextResponse.json(
-        { ok: false, error: `GitHub API error: ${res.status}` },
+        { ok: false, error: `GitHub API error: ${res.status}${errorText ? ` - ${errorText}` : ""}` },
         { status: res.status }
       );
     }

@@ -477,12 +477,44 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setContributorsLoading(true);
       setContributorsError(null);
       try {
-        const res = await fetch(`/api/github/repo/${owner}/${repo}/contributors?per_page=10`);
+        // Try API route first
+        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contributors?per_page=10`);
+        let data;
+        
         if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || `GitHub error ${res.status}`);
+          // Fallback to direct GitHub API call
+          const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+          const headers: HeadersInit = {
+            "User-Agent": "PortfolApp",
+            Accept: "application/vnd.github.v3+json",
+          };
+          if (GITHUB_TOKEN) {
+            headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
+          }
+          
+          res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=10`, { headers });
+          if (!res.ok) {
+            throw new Error(`GitHub error ${res.status}`);
+          }
+          const githubData = await res.json();
+          const simplified = (Array.isArray(githubData) ? githubData : []).map((c: GitHubContributor) => ({
+            id: c.id,
+            login: c.login,
+            avatar_url: c.avatar_url,
+            html_url: c.html_url,
+            contributions: c.contributions,
+          }));
+          setContributors(simplified);
+          try {
+            localStorage.setItem(
+              storageKey,
+              JSON.stringify({ timestamp: now, data: simplified })
+            );
+          } catch { }
+          return;
         }
-        const data = await res.json();
+        
+        data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load contributors");
         }
@@ -542,12 +574,43 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setRepoLoading(true);
       setRepoError(null);
       try {
-        const res = await fetch(`/api/github/repo/${owner}/${repo}`);
+        // Try API route first
+        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`);
+        let data;
+        
         if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || `GitHub error ${res.status}`);
+          // Fallback to direct GitHub API call
+          const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+          const headers: HeadersInit = {
+            "User-Agent": "PortfolApp",
+            Accept: "application/vnd.github.v3+json",
+          };
+          if (GITHUB_TOKEN) {
+            headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
+          }
+          
+          res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+          if (!res.ok) {
+            throw new Error(`GitHub error ${res.status}`);
+          }
+          const githubData = await res.json();
+          const simplified = {
+            id: githubData.id,
+            stargazers_count: githubData.stargazers_count,
+            forks_count: githubData.forks_count,
+            language: githubData.language,
+            updated_at: githubData.updated_at,
+            homepage: githubData.homepage,
+            html_url: githubData.html_url,
+          };
+          setRepoInfo(simplified);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: simplified }));
+          } catch { }
+          return;
         }
-        const data = await res.json();
+        
+        data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load repository info");
         }
@@ -595,12 +658,42 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setLanguagesLoading(true);
       setLanguagesError(null);
       try {
-        const res = await fetch(`/api/github/repo/${owner}/${repo}/languages`);
+        // Try API route first
+        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`);
+        let data;
+        
         if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || `GitHub error ${res.status}`);
+          // Fallback to direct GitHub API call
+          const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+          const headers: HeadersInit = {
+            "User-Agent": "PortfolApp",
+            Accept: "application/vnd.github.v3+json",
+          };
+          if (GITHUB_TOKEN) {
+            headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
+          }
+          
+          res = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, { headers });
+          if (!res.ok) {
+            throw new Error(`GitHub error ${res.status}`);
+          }
+          const langs: Record<string, number> = await res.json();
+          const total = Object.values(langs).reduce((a, b) => a + b, 0);
+          const items = Object.entries(langs)
+            .map(([name, bytes]) => ({
+              name,
+              bytes,
+              percent: total > 0 ? (bytes / total) * 100 : 0,
+            }))
+            .sort((a, b) => b.bytes - a.bytes);
+          setLanguages(items);
+          try {
+            localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: items }));
+          } catch {}
+          return;
         }
-        const data = await res.json();
+        
+        data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load languages");
         }
