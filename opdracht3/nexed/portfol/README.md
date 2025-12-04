@@ -2,6 +2,23 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Variables
+
+Create a `.env.local` file in the root directory and add your GitHub token:
+
+```bash
+GITHUB_TOKEN=your_github_personal_access_token_here
+```
+
+To create a GitHub Personal Access Token:
+1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+2. Generate a new token with `public_repo` scope (or `repo` for private repos)
+3. Copy the token and add it to your `.env.local` file
+
+**Note:** Without a GitHub token, you may encounter 403 errors when fetching GitHub repository information due to rate limiting.
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash

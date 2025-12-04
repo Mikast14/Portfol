@@ -477,18 +477,16 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setContributorsLoading(true);
       setContributorsError(null);
       try {
-        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=10`);
+        const res = await fetch(`/api/github/repo/${owner}/${repo}/contributors?per_page=10`);
         if (!res.ok) {
-          throw new Error(`GitHub error ${res.status}`);
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `GitHub error ${res.status}`);
         }
         const data = await res.json();
-        const simplified = (Array.isArray(data) ? data : []).map((c: GitHubContributor) => ({
-          id: c.id,
-          login: c.login,
-          avatar_url: c.avatar_url,
-          html_url: c.html_url,
-          contributions: c.contributions,
-        }));
+        if (!data.ok) {
+          throw new Error(data.error || "Failed to load contributors");
+        }
+        const simplified = data.data;
         setContributors(simplified);
         try {
           localStorage.setItem(
@@ -544,18 +542,16 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setRepoLoading(true);
       setRepoError(null);
       try {
-        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`);
-        if (!res.ok) throw new Error(`GitHub error ${res.status}`);
+        const res = await fetch(`/api/github/repo/${owner}/${repo}`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `GitHub error ${res.status}`);
+        }
         const data = await res.json();
-        const simplified = {
-          id: data.id,
-          stargazers_count: data.stargazers_count,
-          forks_count: data.forks_count,
-          language: data.language,
-          updated_at: data.updated_at,
-          homepage: data.homepage,
-          html_url: data.html_url,
-        };
+        if (!data.ok) {
+          throw new Error(data.error || "Failed to load repository info");
+        }
+        const simplified = data.data;
         setRepoInfo(simplified);
         try {
           localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: simplified }));
@@ -599,18 +595,16 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setLanguagesLoading(true);
       setLanguagesError(null);
       try {
-        const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`);
-        if (!res.ok) throw new Error(`GitHub error ${res.status}`);
-        const langs: Record<string, number> = await res.json();
-        const total = Object.values(langs).reduce((a, b) => a + b, 0);
-        const items = Object.entries(langs)
-          .map(([name, bytes]) => ({
-            name,
-            bytes,
-            percent: total > 0 ? (bytes / total) * 100 : 0,
-          }))
-          .sort((a, b) => b.bytes - a.bytes);
-
+        const res = await fetch(`/api/github/repo/${owner}/${repo}/languages`);
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.error || `GitHub error ${res.status}`);
+        }
+        const data = await res.json();
+        if (!data.ok) {
+          throw new Error(data.error || "Failed to load languages");
+        }
+        const items = data.data;
         setLanguages(items);
         try {
           localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: items }));
@@ -960,7 +954,6 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                 </p>
               </div>
             )}
-          </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
