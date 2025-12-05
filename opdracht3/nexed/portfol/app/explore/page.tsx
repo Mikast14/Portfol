@@ -7,7 +7,20 @@ import Link from "next/link";
 import PinterestCard from "../components/PinterestCard";
 import Navbar from "../components/Navbar";
 
-type FilterType = "all" | "web" | "desktop" | "mobile" | "game" | "app";
+type FilterType = 
+  | "all" 
+  | "web" 
+  | "desktop" 
+  | "game" 
+  | "app"
+  | "windows"
+  | "macos"
+  | "linux"
+  | "ios"
+  | "android"
+  | "playstation"
+  | "xbox"
+  | "nintendo";
 
 interface Project {
   _id: string;
@@ -102,6 +115,54 @@ const ProjectsPage = () => {
     fetchUserProfiles();
   }, [searchQuery]);
 
+  // Define which platforms belong to which categories
+  const categoryPlatforms: Record<string, FilterType[]> = {
+    game: ["windows", "macos", "linux", "web", "ios", "android", "playstation", "xbox", "nintendo"],
+    app: ["windows", "macos", "linux", "web", "ios", "android"],
+    desktop: ["windows", "macos", "linux"],
+    web: ["web"],
+  };
+
+  // Define all filters
+  const filters: { id: FilterType; label: string; category?: string }[] = [
+    // Category filters
+    { id: "all", label: "All", category: "categories" },
+    { id: "web", label: "Web", category: "categories" },
+    { id: "desktop", label: "Desktop", category: "categories" },
+    { id: "game", label: "Game", category: "categories" },
+    { id: "app", label: "App", category: "categories" },
+    // Individual platform filters
+    { id: "windows", label: "Windows", category: "platforms" },
+    { id: "macos", label: "macOS", category: "platforms" },
+    { id: "linux", label: "Linux", category: "platforms" },
+    { id: "ios", label: "iOS", category: "platforms" },
+    { id: "android", label: "Android", category: "platforms" },
+    { id: "playstation", label: "PlayStation", category: "platforms" },
+    { id: "xbox", label: "Xbox", category: "platforms" },
+    { id: "nintendo", label: "Nintendo", category: "platforms" },
+  ];
+
+  // Get available platform filters based on selected categories
+  const availablePlatformFilters = useMemo(() => {
+    const categoryFilters = ["game", "app", "desktop", "web"] as FilterType[];
+    const selectedCategories = selectedFilters.filter((f) => categoryFilters.includes(f));
+    
+    if (selectedCategories.length === 0 || selectedFilters.includes("all")) {
+      // If no category selected or "all" is selected, show all platforms
+      return filters.filter((f) => f.category === "platforms");
+    }
+    
+    // Get unique platforms from all selected categories
+    const platforms = new Set<FilterType>();
+    selectedCategories.forEach((category) => {
+      if (categoryPlatforms[category]) {
+        categoryPlatforms[category].forEach((platform) => platforms.add(platform));
+      }
+    });
+    
+    return filters.filter((f) => f.category === "platforms" && platforms.has(f.id));
+  }, [selectedFilters]);
+
   // Toggle filter selection
   const toggleFilter = (filterId: FilterType) => {
     setSelectedFilters((prev) => {
@@ -109,18 +170,84 @@ const ProjectsPage = () => {
         // If "all" is clicked, always select it (can't deselect "all")
         return ["all"];
       } else {
-        // If "all" is currently selected, replace it with the clicked filter
-        if (prev.includes("all")) {
-          return [filterId];
+        const categoryFilters = ["game", "app", "desktop", "web"] as FilterType[];
+        const platformFilters = ["windows", "macos", "linux", "ios", "android", "playstation", "xbox", "nintendo"] as FilterType[];
+        
+        // If clicking a category filter
+        if (categoryFilters.includes(filterId)) {
+          // If "all" is currently selected, replace it with the clicked category
+          if (prev.includes("all")) {
+            return [filterId];
+          }
+          
+          // Remove any platform filters that don't belong to this category
+          const newFilters = prev.filter((f) => {
+            if (categoryFilters.includes(f)) {
+              // Keep other category filters (allow multiple categories)
+              return true;
+            }
+            if (platformFilters.includes(f)) {
+              // Only keep platform if it belongs to at least one selected category
+              const selectedCategories = prev.filter((cf) => categoryFilters.includes(cf));
+              if (selectedCategories.length === 0) return false;
+              return selectedCategories.some((cat) => 
+                categoryPlatforms[cat]?.includes(f)
+              );
+            }
+            return true;
+          });
+          
+          // Toggle the category
+          if (prev.includes(filterId)) {
+            const filtered = newFilters.filter((f) => f !== filterId);
+            // If no categories left, select "all"
+            const hasCategory = filtered.some((f) => categoryFilters.includes(f));
+            return hasCategory ? filtered : ["all"];
+          } else {
+            return [...newFilters, filterId];
+          }
         }
-        // Otherwise, toggle the filter
+        
+        // If clicking a platform filter
+        if (platformFilters.includes(filterId)) {
+          // If "all" is currently selected, can't select platform
+          if (prev.includes("all")) {
+            return prev;
+          }
+          
+          // Check if at least one category is selected
+          const selectedCategories = prev.filter((f) => categoryFilters.includes(f));
+          if (selectedCategories.length === 0) {
+            // Can't select platform without a category
+            return prev;
+          }
+          
+          // Check if platform belongs to at least one selected category
+          const belongsToCategory = selectedCategories.some((cat) => 
+            categoryPlatforms[cat]?.includes(filterId)
+          );
+          
+          if (!belongsToCategory) {
+            // Platform doesn't belong to selected categories
+            return prev;
+          }
+          
+          // Toggle the platform
+          if (prev.includes(filterId)) {
+            const newFilters = prev.filter((f) => f !== filterId);
+            return newFilters.length === 0 ? ["all"] : newFilters;
+          } else {
+            return [...prev, filterId];
+          }
+        }
+        
+        // Fallback: toggle the filter
         let newFilters;
         if (prev.includes(filterId)) {
           newFilters = prev.filter((f) => f !== filterId);
         } else {
           newFilters = [...prev, filterId];
         }
-        // If no filters are selected after toggling, automatically select "all"
         return newFilters.length === 0 ? ["all"] : newFilters;
       }
     });
@@ -152,45 +279,71 @@ const ProjectsPage = () => {
     return projects.filter((project: Project) => {
       const platforms = project.platforms || [];
       
-      // Check if project matches any of the selected filters (OR logic)
-      return selectedFilters.some((filter) => {
-        if (filter === "web") {
-          return platforms.includes("web");
-        }
+      const categoryFilters = ["game", "app", "desktop", "web"] as FilterType[];
+      const platformFilters = ["windows", "macos", "linux", "ios", "android", "playstation", "xbox", "nintendo"] as FilterType[];
+      
+      const selectedCategories = selectedFilters.filter((f) => categoryFilters.includes(f));
+      const selectedPlatforms = selectedFilters.filter((f) => platformFilters.includes(f));
+      
+      // If only categories are selected (no platforms), use OR logic for categories
+      if (selectedCategories.length > 0 && selectedPlatforms.length === 0) {
+        return selectedCategories.some((filter) => {
+          if (filter === "web") {
+            return platforms.includes("web");
+          }
+          if (filter === "desktop") {
+            return platforms.some((p: string) => 
+              ["windows", "macos", "linux"].includes(p.toLowerCase())
+            );
+          }
+          if (filter === "game") {
+            return platforms.includes("game");
+          }
+          if (filter === "app") {
+            return platforms.includes("app");
+          }
+          return false;
+        });
+      }
+      
+      // If both categories and platforms are selected, use AND logic
+      // Project must match at least one category AND at least one platform
+      if (selectedCategories.length > 0 && selectedPlatforms.length > 0) {
+        const matchesCategory = selectedCategories.some((filter) => {
+          if (filter === "web") {
+            return platforms.includes("web");
+          }
+          if (filter === "desktop") {
+            return platforms.some((p: string) => 
+              ["windows", "macos", "linux"].includes(p.toLowerCase())
+            );
+          }
+          if (filter === "game") {
+            return platforms.includes("game");
+          }
+          if (filter === "app") {
+            return platforms.includes("app");
+          }
+          return false;
+        });
         
-        if (filter === "desktop") {
-          return platforms.some((p: string) => 
-            ["windows", "macos", "linux"].includes(p.toLowerCase())
-          );
-        }
+        if (!matchesCategory) return false;
         
-        if (filter === "mobile") {
-          return platforms.some((p: string) => 
-            ["ios", "android", "mobile"].includes(p.toLowerCase())
-          );
-        }
-        
-        if (filter === "game") {
-          return platforms.includes("game");
-        }
-        
-        if (filter === "app") {
-          return platforms.includes("app");
-        }
-        
-        return false;
-      });
+        return selectedPlatforms.some((filter) => {
+          return platforms.includes(filter);
+        });
+      }
+      
+      // If only platforms are selected (shouldn't happen with new logic, but keep for safety)
+      if (selectedPlatforms.length > 0) {
+        return selectedPlatforms.some((filter) => {
+          return platforms.includes(filter);
+        });
+      }
+      
+      return false;
     });
   }, [allProjects, selectedFilters, searchQuery]);
-
-  const filters: { id: FilterType; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "web", label: "Web" },
-    { id: "desktop", label: "Desktop" },
-    { id: "mobile", label: "Mobile" },
-    { id: "game", label: "Game" },
-    { id: "app", label: "App" },
-  ];
 
   return (
     <div className="min-h-screen font-sans bg-white">
@@ -216,20 +369,66 @@ const ProjectsPage = () => {
 
           {/* Filters */}
           <div className="mb-6 px-2">
-            <div className="flex flex-wrap gap-2">
-              {filters.map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => toggleFilter(filter.id)}
-                  className={`px-4 py-2.5 rounded-full text-sm font-medium transition-colors ${
-                    selectedFilters.includes(filter.id)
-                      ? "bg-accent text-white shadow-sm hover:bg-primary-hover"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
+            <div className="space-y-4">
+              {/* Category Filters */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Categories</h3>
+                <div className="flex flex-wrap gap-2">
+                  {filters.filter(f => f.category === "categories").map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => toggleFilter(filter.id)}
+                      className={`px-4 py-2.5 rounded-full text-sm font-medium transition-colors ${
+                        selectedFilters.includes(filter.id)
+                          ? "bg-accent text-white shadow-sm hover:bg-primary-hover"
+                          : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Platform Filters - Only show when a category is selected */}
+              {(selectedFilters.some(f => ["game", "app", "desktop", "web"].includes(f)) || selectedFilters.includes("all")) && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                    Platforms
+                    {!selectedFilters.includes("all") && (
+                      <span className="ml-2 text-xs font-normal text-gray-500 normal-case">
+                        (Filter by platform within selected categories)
+                      </span>
+                    )}
+                  </h3>
+                  {availablePlatformFilters.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {availablePlatformFilters.map((filter) => (
+                        <button
+                          key={filter.id}
+                          onClick={() => toggleFilter(filter.id)}
+                          disabled={selectedFilters.includes("all")}
+                          className={`px-4 py-2.5 rounded-full text-sm font-medium transition-colors ${
+                            selectedFilters.includes(filter.id)
+                              ? "bg-accent text-white shadow-sm hover:bg-primary-hover"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          } ${
+                            selectedFilters.includes("all")
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
+                        >
+                          {filter.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">
+                      Select a category to see available platforms
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

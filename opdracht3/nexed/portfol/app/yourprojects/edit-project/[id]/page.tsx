@@ -8,6 +8,7 @@ import Navbar from "../../../components/Navbar";
 import CommentsSection from "../../../components/CommentsSection";
 import { GitHubRepo } from "../../add-project/types";
 import { GitHubDisplaySettings, DEFAULT_GITHUB_SETTINGS } from "../../add-project/components/GitHubDisplaySettingsSection";
+import PlatformsSection from "../../add-project/components/PlatformsSection";
 
 type ActiveStatusMode = "auto" | "active" | "inactive" | "hide";
 type DisplayMode = "auto" | "hide";
@@ -32,32 +33,9 @@ interface Project {
   updatedAt: string;
 }
 
-const platformIcons: Record<string, React.ReactElement> = {
-  windows: (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 12V6.75l6-1.32v6.48L3 12zm17-9v8.75l-10 .15V5.21L20 3zM3 13l6 .09v6.81l-6-1.15V13zm17 .25V22l-10-1.8v-7.45l10 .15z" />
-    </svg>
-  ),
-  macos: (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
-    </svg>
-  ),
-  web: (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  ),
-  linux: (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 0 0-.11.135c-.26.204-.45.462-.663.773-.722 1.077-1.262 2.137-1.262 3.647 0 3.343 3.392 5.76 8.527 5.76 5.036 0 8.614-2.358 8.614-5.726 0-1.41-.45-2.468-1.192-3.533a3.76 3.76 0 0 0-.663-.792.416.416 0 0 0-.134-.09c.152-.741.06-1.539-.189-2.306-.603-1.678-1.876-3.296-2.732-4.431-.765-1.002-1.083-1.822-1.175-2.863-.065-1.415.505-5.001-3.357-6.298A3.022 3.022 0 0 0 12.504 0zm-.002 1.111c.104 0 .21.003.318.008 2.617.206 2.193 2.96 2.259 3.999.061.968.303 1.58.774 2.216.69.94 1.586 2.1 2.127 3.636.256.736.36 1.509.28 2.25-.04.37-.12.72-.22 1.04-.08.25-.17.48-.27.7-.1.22-.2.43-.31.63-.11.2-.22.38-.33.56-.11.18-.22.35-.33.51-.11.16-.21.31-.31.45-.1.14-.19.27-.27.39-.08.12-.15.23-.21.33-.06.1-.11.18-.15.25-.04.07-.07.12-.09.16-.02.04-.03.06-.03.07 0 .01.01.03.03.07.02.04.05.09.09.16.04.07.09.15.15.25.06.1.13.21.21.33.08.12.17.25.27.39.1.14.2.29.31.45.11.16.22.33.33.51.11.18.22.36.33.56.11.2.21.41.31.63.1.22.19.45.27.7.1.32.18.67.22 1.04.08.74-.02 1.51-.28 2.25-.54 1.54-1.437 2.7-2.127 3.636-.471.636-.713 1.248-.774 2.216-.066 1.039-.358 3.793-2.26 3.999a3.02 3.02 0 0 1-.316.008c-.104 0-.21-.003-.318-.008-2.617-.206-2.193-2.96-2.259-3.999-.061-.968-.303-1.58-.774-2.216-.69-.94-1.586-2.1-2.127-3.636-.256-.736-.36-1.509-.28-2.25.04-.37.12-.72.22-1.04.08-.25.17-.48.27-.7.1-.22.2-.43.31-.63.11-.2.22-.38.33-.56.11.18.22.35.33.51.11.16.21.31.31.45.1.14.19.27.27.39.08.12.15.23.21.33.06.1.11.18.15.25.04.07.07.12.09.16.02.04.03.06.03.07 0 .01-.01.03-.03.07-.02.04-.05.09-.09.16-.04.07-.09.15-.15.25-.06.1-.13.21-.21.33-.08.12-.17.25-.27.39-.1.14-.2.29-.31.45-.11.16-.22.33-.33.51-.11.18-.22.36-.33.56-.11.2-.21.41-.31.63-.1.22-.19.45-.27.7-.1.32-.18.67-.22 1.04-.08.74.02-1.51.28-2.25.54-1.54 1.437-2.7 2.127-3.636.471-.636.713-1.248.774-2.216.066-1.039.358-3.793 2.26-3.999a3.02 3.02 0 0 1 .316-.008z" />
-    </svg>
-  ),
-};
 
-const DESKTOP_PLATFORMS = ["windows", "macos", "linux"];
-const TYPE_PLATFORMS = ["web", "game", "app"];
+// Project types that can be extracted from platforms
+const PROJECT_TYPES = ["game", "app", "website"];
 
 export default function EditProject() {
   const router = useRouter();
@@ -72,6 +50,7 @@ export default function EditProject() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
+  const [projectType, setProjectType] = useState<string | null>(null);
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
@@ -116,7 +95,14 @@ export default function EditProject() {
           setName(projectData.name || "");
           setDescription(projectData.description || "");
           setGithubRepo(projectData.githubRepo || "");
-          setPlatforms(projectData.platforms || []);
+          
+          // Extract project type from platforms and separate actual platforms
+          const allPlatforms = projectData.platforms || [];
+          const extractedType = allPlatforms.find((p: string) => PROJECT_TYPES.includes(p.toLowerCase())) || null;
+          const actualPlatforms = allPlatforms.filter((p: string) => !PROJECT_TYPES.includes(p.toLowerCase()));
+          
+          setProjectType(extractedType);
+          setPlatforms(actualPlatforms);
           
           if (projectData.image) {
             setMainImageUrl(projectData.image);
@@ -234,11 +220,17 @@ export default function EditProject() {
     handleImageSelect(newIndex);
   };
 
-  const handlePlatformToggle = (platform: string) => {
+  const handleProjectTypeChange = useCallback((type: string | null) => {
+    setProjectType(type);
+    // Clear platforms when changing type
+    setPlatforms([]);
+  }, []);
+
+  const handlePlatformToggle = useCallback((platform: string) => {
     setPlatforms((prev) =>
       prev.includes(platform) ? prev.filter((item) => item !== platform) : [...prev, platform]
     );
-  };
+  }, []);
 
   const handleAddImage = () => {
     const url = prompt("Enter image URL:");
@@ -255,8 +247,8 @@ export default function EditProject() {
   };
 
   const handleSave = async () => {
-    if (!name || !description || !githubRepo || platforms.length === 0) {
-      setMessage("Please fill in all required fields");
+    if (!name || !description || !githubRepo || !projectType || platforms.length === 0) {
+      setMessage("Please fill in all required fields, including project type and at least one platform");
       return;
     }
 
@@ -282,7 +274,7 @@ export default function EditProject() {
           name,
           description,
           githubRepo,
-          platforms: platforms.join(","),
+          platforms: projectType ? [projectType, ...platforms].join(",") : platforms.join(","),
           mainImageUrl: mainImageUrl.trim() || undefined,
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
           githubDisplaySettings,
@@ -632,52 +624,14 @@ export default function EditProject() {
                   </div>
 
                   {/* Platforms - Always Editable */}
-                  <div>
-                    <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Platforms</div>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-xs text-gray-600 mb-2">Desktop Platforms</div>
-                        <div className="flex flex-wrap gap-2">
-                          {DESKTOP_PLATFORMS.map((platform) => (
-                            <button
-                              key={platform}
-                              onClick={() => handlePlatformToggle(platform)}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs capitalize transition-colors ${
-                                platforms.includes(platform)
-                                  ? "bg-accent text-white"
-                                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                              }`}
-                            >
-                              {platformIcons[platform]}
-                              {platform === "macos" ? "macOS" : platform}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-600 mb-2">Type</div>
-                        <div className="flex flex-wrap gap-2">
-                          {TYPE_PLATFORMS.map((platform) => (
-                            <button
-                              key={platform}
-                              onClick={() => handlePlatformToggle(platform)}
-                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs capitalize transition-colors ${
-                                platforms.includes(platform)
-                                  ? "bg-accent text-white"
-                                  : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                              }`}
-                            >
-                              {platformIcons[platform] || (
-                                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                                  <circle cx="12" cy="12" r="10" />
-                                </svg>
-                              )}
-                              {platform}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                  <div className="border-t border-gray-200 pt-4 -mx-6 px-6">
+                    <PlatformsSection
+                      platforms={platforms}
+                      loading={submitting}
+                      onTogglePlatform={handlePlatformToggle}
+                      projectType={projectType}
+                      onProjectTypeChange={handleProjectTypeChange}
+                    />
                   </div>
 
                   {/* GitHub Repo - Always Editable */}
@@ -758,7 +712,7 @@ export default function EditProject() {
                   <div className="flex gap-3">
                     <button
                       onClick={handleSave}
-                      disabled={submitting || platforms.length === 0}
+                      disabled={submitting || !projectType || platforms.length === 0}
                       className="flex-1 bg-accent hover:bg-primary-hover text-white px-6 py-3 rounded-full text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {submitting ? (
