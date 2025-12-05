@@ -48,7 +48,21 @@ const projectSchema = new mongoose.Schema(
     platforms: {
       type: [String],
       required: true,
-      enum: ["windows", "macos", "web", "linux", "game", "app"],
+      validate: {
+        validator: function(platforms) {
+          const validPlatforms = ["windows", "macos", "web", "linux", "game", "app", "website", "ios", "android", "playstation", "xbox", "nintendo"];
+          if (!Array.isArray(platforms) || platforms.length === 0) {
+            return false;
+          }
+          // Validate each platform (handle both string and already lowercased values)
+          return platforms.every(platform => {
+            if (typeof platform !== 'string') return false;
+            const normalized = platform.trim().toLowerCase();
+            return validPlatforms.includes(normalized);
+          });
+        },
+        message: "Each platform must be one of: windows, macos, web, linux, game, app, website, ios, android, playstation, xbox, nintendo"
+      }
     },
     image: {
       type: String, // Path to the primary image file (for backward compatibility)
@@ -78,6 +92,11 @@ const projectSchema = new mongoose.Schema(
     timestamps: true, // Automatically adds createdAt and updatedAt
   }
 );
+
+// Delete cached model in development to ensure schema changes are picked up
+if (process.env.NODE_ENV === 'development' && mongoose.models.Project) {
+  delete mongoose.models.Project;
+}
 
 // Check if the model already exists to prevent re-compilation errors
 const Project =

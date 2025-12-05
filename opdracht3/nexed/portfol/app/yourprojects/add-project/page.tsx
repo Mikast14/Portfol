@@ -19,6 +19,7 @@ export default function AddProject() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
+  const [projectType, setProjectType] = useState<string | null>(null);
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
@@ -69,6 +70,12 @@ export default function AddProject() {
     setGithubRepo(value);
   }, []);
 
+  const handleProjectTypeChange = useCallback((type: string | null) => {
+    setProjectType(type);
+    // Clear platforms when changing type
+    setPlatforms([]);
+  }, []);
+
   const handlePlatformToggle = useCallback(
     (platform: string) => {
       setPlatforms((prev) =>
@@ -115,8 +122,8 @@ export default function AddProject() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (!name || !description || !githubRepo || platforms.length === 0) {
-      setMessage("Please fill in all required fields");
+    if (!name || !description || !githubRepo || !projectType || platforms.length === 0) {
+      setMessage("Please fill in all required fields, including project type and at least one platform");
       return;
     }
 
@@ -131,6 +138,9 @@ export default function AddProject() {
         return;
       }
 
+      // Include project type in platforms array for backward compatibility
+      const platformsToSubmit = projectType ? [projectType, ...platforms] : platforms;
+
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: {
@@ -141,7 +151,7 @@ export default function AddProject() {
           name,
           description,
           githubRepo,
-          platforms: platforms.join(","),
+          platforms: platformsToSubmit.join(","),
           mainImageUrl: mainImageUrl.trim() || undefined,
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
           githubDisplaySettings,
@@ -208,6 +218,8 @@ export default function AddProject() {
               platforms={platforms}
               loading={loading}
               onTogglePlatform={handlePlatformToggle}
+              projectType={projectType}
+              onProjectTypeChange={handleProjectTypeChange}
             />
 
             <ProjectImageSection
@@ -260,7 +272,7 @@ export default function AddProject() {
             <div className="flex gap-4 pt-2">
               <button
                 type="submit"
-                disabled={loading || platforms.length === 0}
+                disabled={loading || !projectType || platforms.length === 0}
                 className="flex-1 bg-accent text-white rounded-full px-8 py-4 hover:bg-primary-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {loading ? (
