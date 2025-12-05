@@ -10,8 +10,10 @@ const Navbar = () => {
   const router = useRouter();
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isSearchHovered, setIsSearchHovered] = useState(false);
   const [userSearchResults, setUserSearchResults] = useState<Array<{
     id: string;
     username: string;
@@ -137,6 +139,26 @@ const Navbar = () => {
     };
   }, [isDropdownOpen, isSearchFocused]);
 
+  // Close mobile menu on escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener("keydown", handleEscape);
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
+
   const handleLogout = () => {
     setIsDropdownOpen(false);
     logout();
@@ -189,9 +211,35 @@ const Navbar = () => {
   };
 
   return (
-    <div className="mt-[20px] fixed mb-[20px] w-full flex justify-center z-50">
-      <div className="w-[calc(100%-30%)] bg-white rounded-full px-6 py-3 shadow-elevated grid grid-cols-[1fr_auto_1fr] items-center">
-        <div className="flex items-center gap-8 text-sm font-medium text-black justify-self-start">
+    <div className="mt-[20px] fixed mb-[20px] w-full flex justify-center z-50 px-4 sm:px-0">
+      <div className="w-full max-w-7xl bg-white rounded-full px-4 sm:px-6 py-3 shadow-elevated flex items-center justify-between gap-4 relative">
+        {/* Mobile Menu Button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="lg:hidden p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+          aria-label="Toggle menu"
+          aria-expanded={isMobileMenuOpen}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-6 w-6 text-gray-700"
+          >
+            {isMobileMenuOpen ? (
+              <path d="M18 6L6 18M6 6l12 12" />
+            ) : (
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            )}
+          </svg>
+        </button>
+
+        {/* Desktop Navigation Links */}
+        <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-black z-10">
           {navLinks.map(({ label, href }) => {
             const isActive = href !== "#" && pathname === href;
 
@@ -208,18 +256,43 @@ const Navbar = () => {
             );
           })}
         </div>
-        <Link href="/" className="select-none justify-self-center">
+
+        {/* Logo - Absolutely Centered, Moves Left When Search Opens (350px-600px only) */}
+        <Link 
+          href="/" 
+          className={`select-none shrink-0 absolute z-10 transition-all duration-300 ease-out ${
+            isSearchFocused || searchQuery || isSearchHovered
+              ? "left-[56px] max-[350px]:left-1/2 max-[350px]:transform max-[350px]:-translate-x-1/2 min-[600px]:left-1/2 min-[600px]:transform min-[600px]:-translate-x-1/2 transform translate-x-0"
+              : "left-1/2 transform -translate-x-1/2"
+          }`}
+        >
           <Image
             src="/logo1portfol.png"
             alt="Portfol logo"
             width={140}
             height={40}
-            className="h-10 w-auto shrink-0"
+            className={`w-auto shrink-0 transition-all duration-300 ease-out ${
+              isSearchFocused || searchQuery || isSearchHovered
+                ? "h-6 max-[350px]:h-8 max-[350px]:sm:h-10 min-[600px]:h-8 min-[600px]:sm:h-10"
+                : "h-8 sm:h-10"
+            }`}
             priority
           />
         </Link>
-        <div className="flex items-center gap-6 text-sm font-medium justify-self-end shrink-0">
-          <form onSubmit={handleSearch} autoComplete="off" role="search" className="relative flex items-center group" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+
+        {/* Right Side: Search and User/Auth */}
+        <div className="flex items-center gap-3 sm:gap-6 text-sm font-medium shrink-0 z-10 ml-auto">
+          <form 
+            onSubmit={handleSearch} 
+            autoComplete="off" 
+            role="search" 
+            className="relative flex items-center group" 
+            data-lpignore="true" 
+            data-1p-ignore="true" 
+            data-bwignore="true"
+            onMouseEnter={() => setIsSearchHovered(true)}
+            onMouseLeave={() => setIsSearchHovered(false)}
+          >
             {/* Hidden fake fields to prevent browser autofill - placed BEFORE search input */}
             <input 
               type="text" 
@@ -273,8 +346,8 @@ const Navbar = () => {
             <div ref={searchDropdownRef} className="relative">
               <div className={`relative flex items-center h-10 transition-all duration-300 ease-out overflow-hidden ${
                 isSearchFocused || searchQuery 
-                  ? "w-72" 
-                  : "w-10 group-hover:w-72"
+                  ? "w-48 sm:w-64 md:w-72" 
+                  : "w-10 group-hover:w-48 sm:group-hover:w-64 md:group-hover:w-72"
               }`}>
                 <div className={`absolute inset-0 rounded-full bg-gray-50/80 backdrop-blur-sm border-2 transition-all duration-300 ${
                   isSearchFocused 
@@ -368,7 +441,7 @@ const Navbar = () => {
               
               {/* Search Results Dropdown */}
               {isSearchFocused && (userSearchResults.length > 0 || recentSearches.length > 0 || searchQuery.trim()) && (
-                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full left-0 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   {/* User Profile Results */}
                   {userSearchResults.length > 0 && (
                     <>
@@ -589,16 +662,294 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2 shrink-0">
-              <a href="/login" className="bg-primary text-white rounded-full px-5 py-2 hover:bg-secondary-hover transition whitespace-nowrap">
+              <a href="/login" className="bg-primary text-white rounded-full px-3 sm:px-5 py-2 hover:bg-secondary-hover transition whitespace-nowrap text-xs sm:text-sm">
                 Login
               </a>
-              <a href="/login/registration" className="bg-accent text-white rounded-full px-5 py-2 hover:bg-primary-hover transition whitespace-nowrap">
+              <a href="/login/registration" className="bg-accent text-white rounded-full px-3 sm:px-5 py-2 hover:bg-primary-hover transition whitespace-nowrap text-xs sm:text-sm">
                 Get started
               </a>
             </div>
           )}
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          {/* Mobile Menu */}
+          <div className="fixed top-[calc(20px+64px)] left-4 right-4 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 lg:hidden animate-in slide-in-from-top-2 duration-200 max-h-[calc(100vh-120px)] overflow-y-auto">
+            <div className="p-4">
+              {/* Mobile Navigation Links */}
+              <nav className="flex flex-col gap-2 mb-4">
+                {navLinks.map(({ label, href }) => {
+                  const isActive = href !== "#" && pathname === href;
+
+                  return (
+                    <Link
+                      key={label}
+                      href={href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`px-4 py-3 rounded-lg text-base font-medium transition ${
+                        isActive
+                          ? "text-accent bg-accent/10"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {label}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              {/* Mobile Search - Full Width */}
+              <div className="mb-4 relative">
+                <form onSubmit={handleSearch} autoComplete="off" role="search" className="relative" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+                  <div className="relative flex items-center h-12 bg-gray-50 rounded-lg border-2 border-gray-200 focus-within:border-accent focus-within:bg-white transition-all">
+                    <button
+                      type="submit"
+                      aria-label="Search"
+                      className="p-3 text-gray-400"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5"
+                      >
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                    </button>
+                    <input
+                      type="search"
+                      name="q"
+                      placeholder="Search projects or profiles..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleSearchKeyDown}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                      className="flex-1 bg-transparent border-none outline-none text-sm text-gray-900 placeholder-gray-400 pr-4"
+                      autoComplete="off"
+                    />
+                  </div>
+                  
+                  {/* Mobile Search Results Dropdown */}
+                  {isSearchFocused && (userSearchResults.length > 0 || recentSearches.length > 0 || searchQuery.trim()) && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 max-h-64 overflow-y-auto">
+                      {/* User Profile Results */}
+                      {userSearchResults.length > 0 && (
+                        <>
+                          <div className="px-3 py-2 border-b border-gray-100">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Profiles</p>
+                          </div>
+                          <div className="py-1">
+                            {userSearchResults.map((user) => (
+                              <button
+                                key={user.id}
+                                type="button"
+                                onClick={() => {
+                                  handleUserProfileClick(user.username);
+                                  setIsMobileMenuOpen(false);
+                                }}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors flex items-center gap-3"
+                              >
+                                {user.profileImage ? (
+                                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 shrink-0">
+                                    <Image
+                                      src={user.profileImage}
+                                      alt={user.username}
+                                      width={48}
+                                      height={48}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center border-2 border-gray-200 shrink-0">
+                                    <span className="text-lg font-semibold text-accent">
+                                      {user.username.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-gray-900 truncate">{user.username}</p>
+                                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* Recent Searches */}
+                      {recentSearches.length > 0 && userSearchResults.length === 0 && !searchQuery.trim() && (
+                        <>
+                          <div className="px-3 py-2 border-b border-gray-100">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Recent Searches</p>
+                          </div>
+                          <div className="py-1">
+                            {recentSearches.map((search, index) => (
+                              <button
+                                key={index}
+                                type="button"
+                                onClick={() => {
+                                  handleRecentSearchClick(search);
+                                  setIsMobileMenuOpen(false);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="h-4 w-4 text-gray-400 shrink-0"
+                                >
+                                  <circle cx="12" cy="12" r="10" />
+                                  <polyline points="12 6 12 12 16 14" />
+                                </svg>
+                                <span className="truncate flex-1">{search}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Loading State */}
+                      {isSearchingUsers && userSearchResults.length === 0 && searchQuery.trim() && (
+                        <div className="px-4 py-3 text-center">
+                          <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-accent border-t-transparent"></div>
+                          <p className="text-xs text-gray-500 mt-2">Searching...</p>
+                        </div>
+                      )}
+
+                      {/* No Results */}
+                      {!isSearchingUsers && userSearchResults.length === 0 && searchQuery.trim() && (
+                        <div className="px-4 py-3 text-center">
+                          <p className="text-sm text-gray-500">No profiles found</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </form>
+              </div>
+
+              {/* Mobile Auth Buttons */}
+              {!isAuthenticated && (
+                <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
+                  <a
+                    href="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="bg-primary text-white rounded-lg px-4 py-3 text-center font-medium hover:bg-secondary-hover transition"
+                  >
+                    Login
+                  </a>
+                  <a
+                    href="/login/registration"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="bg-accent text-white rounded-lg px-4 py-3 text-center font-medium hover:bg-primary-hover transition"
+                  >
+                    Get started
+                  </a>
+                </div>
+              )}
+
+              {/* Mobile User Profile */}
+              {isAuthenticated && user && (
+                <div className="pt-4 border-t border-gray-200">
+                  <Link
+                    href={`/user/${user.username}`}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors mb-2"
+                  >
+                    {user.profileImage ? (
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200">
+                        <Image
+                          src={user.profileImage}
+                          alt={user.username}
+                          width={48}
+                          height={48}
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center border-2 border-gray-200">
+                        <span className="text-base font-medium text-gray-600">
+                          {user.username.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900">{user.username}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                  </Link>
+                  <Link
+                    href="/settings"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <svg
+                      className="w-5 h-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    <span>Settings</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors mt-2"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
