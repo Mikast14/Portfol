@@ -349,7 +349,7 @@ export default function UserProfilePage() {
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {skillItems.map((skill) => {
                   const isActive = hoveredLanguage === skill.language;
-                  const color = getLanguageColor(skill.language);
+                  const color = getLanguageColor(skill.language); // from lib/languageColors
 
                   return (
                     <div
@@ -360,14 +360,12 @@ export default function UserProfilePage() {
                         isActive ? "-translate-y-0.5 shadow-lg" : "shadow-elevated"
                       }`}
                       style={{
-                        // lighter border when idle, stronger when active
+                        // border like profile header, but tinted by language
                         borderColor: isActive ? `${color}66` : `${color}33`,
-                        // base white background
-                        backgroundColor: "#ffffff",
-                        // language‑tinted gradient like the profile header
+                        // gradient similar to bg-gradient-to-br from-accent/10 via-white to-primary-hover/10
                         backgroundImage: isActive
-                          ? `linear-gradient(to bottom right, ${color}1a, #ffffff, ${color}26)`
-                          : "none",
+                          ? `linear-gradient(to bottom right, ${color}1a, #ffffff, ${color}33)`
+                          : `linear-gradient(to bottom right, ${color}0d, #ffffff, ${color}1a)`,
                       }}
                     >
                       <div className="flex items-center justify-between mb-1">

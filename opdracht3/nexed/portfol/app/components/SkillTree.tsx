@@ -119,7 +119,7 @@ export default function SkillTree({ items, onHoverLanguage, activeLanguage }: Sk
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-bold text-black">Skills</h3>
         <span className="text-xs text-gray-500">
-          Based on code size (bytes) across all repos
+          Based on average code size per contributor (bytes) in your GitHub repos
         </span>
       </div>
 
