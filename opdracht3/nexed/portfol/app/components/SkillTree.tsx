@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
+import { getLanguageColor } from "@/app/lib/languageColors";
 
 export interface SkillItem {
   language: string;
@@ -18,17 +19,6 @@ export default function SkillTree({ items }: SkillTreeProps) {
   const innerR = 58;
   const outerR = 108;
   const maxSlices = 6; // show top 6, group rest as "Other"
-
-  const palette = [
-    "#F355A7", // accent
-    "#6366F1",
-    "#06B6D4",
-    "#22C55E",
-    "#F59E0B",
-    "#A855F7",
-    "#EF4444",
-    "#0EA5E9",
-  ];
 
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -104,14 +94,7 @@ export default function SkillTree({ items }: SkillTreeProps) {
     const isHover = hoverIndex === i;
     const bump = isHover ? 6 : 0;
     const [dx, dy] = [Math.cos(mid) * bump, Math.sin(mid) * bump];
-    const color = palette[i % palette.length];
-
-    // Label leader line
-    const labelR = outerR + 10;
-    const [lx, ly] = toXY(mid, labelR);
-    const isLeft = Math.cos(mid) < 0;
-    const labelX = lx + (isLeft ? -8 : 8);
-    const textAnchor = isLeft ? "end" : "start";
+    const color = getLanguageColor(d.language);
 
     return {
       i,
@@ -121,15 +104,6 @@ export default function SkillTree({ items }: SkillTreeProps) {
       path: arcPath(start, end, outerR + (isHover ? 4 : 0), innerR),
       transform: `translate(${dx}, ${dy})`,
       color,
-      label: {
-        x1: lx,
-        y1: ly,
-        x2: labelX + (isLeft ? -8 : 8),
-        y2: ly,
-        textX: labelX,
-        textY: ly + 4,
-        textAnchor,
-      },
       datum: d,
     };
   });
@@ -143,7 +117,7 @@ export default function SkillTree({ items }: SkillTreeProps) {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-lg font-bold text-black">Skills</h3>
         <span className="text-xs text-gray-500">
-          Based on primary language per project
+          Based on code size (bytes) across all repos
         </span>
       </div>
 
@@ -155,18 +129,6 @@ export default function SkillTree({ items }: SkillTreeProps) {
             role="img"
             aria-label="Languages distribution"
           >
-            {/* Center label */}
-            <circle cx={center * 1.5} cy={center} r={innerR - 10} fill="#f8fafc" />
-            <text
-              x={center * 1.5}
-              y={center - 2}
-              textAnchor="middle"
-              className="fill-gray-800"
-              style={{ fontSize: 12, fontWeight: 700 }}
-            >
-              Languages
-            </text>
-
             {/* Slices */}
             {slices.map((s) => (
               <g
@@ -192,28 +154,7 @@ export default function SkillTree({ items }: SkillTreeProps) {
               </g>
             ))}
 
-            {/* Leader lines + labels */}
-            {slices.map((s) => (
-              <g key={`lbl-${s.i}`}>
-                <line
-                  x1={s.label.x1}
-                  y1={s.label.y1}
-                  x2={s.label.x2}
-                  y2={s.label.y2}
-                  stroke="#e5e7eb"
-                  strokeWidth={1}
-                />
-                <text
-                  x={s.label.textX}
-                  y={s.label.textY}
-                  textAnchor={s.label.textAnchor as any}
-                  className="fill-gray-800"
-                  style={{ fontSize: 11, fontWeight: 600 }}
-                >
-                  {s.datum.language} {s.datum.percentage}%
-                </text>
-              </g>
-            ))}
+            {/* No text labels around the circle; legend below shows colors/text */}
           </svg>
         </div>
 
@@ -223,7 +164,7 @@ export default function SkillTree({ items }: SkillTreeProps) {
             <div key={i} className="flex items-center gap-2">
               <span
                 className="inline-block w-3 h-3 rounded-sm"
-                style={{ backgroundColor: palette[i % palette.length] }}
+                style={{ backgroundColor: getLanguageColor(d.language) }}
               />
               <span className="text-sm text-gray-800 font-medium">
                 {d.language}

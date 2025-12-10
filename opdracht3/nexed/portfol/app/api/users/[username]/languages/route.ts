@@ -74,19 +74,25 @@ export async function GET(
       }
     }
 
-    // Build response array from all languages used in all repos
+    // Compute total bytes across all languages for global percentage
+    const totalBytes = Object.values(langMap).reduce(
+      (acc, stat) => acc + stat.bytes,
+      0
+    );
+
+    // Build response array using bytes-based percentages across all repos
     const items = Object.entries(langMap)
       .map(([language, stat]) => ({
         language,
         projects: stat.projects,
         bytes: stat.bytes,
         percentage:
-          totalProjects > 0
-            ? Math.round((stat.projects / totalProjects) * 100)
+          totalBytes > 0
+            ? Math.round((stat.bytes / totalBytes) * 100)
             : 0,
       }))
-      // Sort by number of repos using the language, then by bytes
-      .sort((a, b) => b.projects - a.projects || b.bytes - a.bytes);
+      // Sort by total bytes (primary), then by number of repos using the language
+      .sort((a, b) => b.bytes - a.bytes || b.projects - a.projects);
 
     return NextResponse.json({
       ok: true,
