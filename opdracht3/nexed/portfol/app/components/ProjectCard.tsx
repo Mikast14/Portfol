@@ -48,8 +48,10 @@ export default function ProjectCard({
   const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const { isAuthenticated, user } = useAuth();
-  const canEdit = showEditButton ?? mode === "profile";
-  const canDelete = showDeleteButton ?? mode === "profile";
+  // Allow admin to edit/delete any project, or if explicitly set, or if in profile mode
+  const isAdmin = user?.email === "admin@admin.nl";
+  const canEdit = showEditButton ?? (mode === "profile" || (isAdmin && isAuthenticated));
+  const canDelete = showDeleteButton ?? (mode === "profile" || (isAdmin && isAuthenticated));
   const showBookmark = mode === "explore" && isAuthenticated;
   const showLike = mode === "explore" && isAuthenticated && project.userId?._id !== user?.id;
 

@@ -1178,8 +1178,8 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                       </>
                     )}
                   </button>
-                  {/* Edit button - only show if user owns the project */}
-                  {project.userId?._id && user?.id && project.userId._id.toString() === user.id && (
+                  {/* Edit button - only show if user owns the project or is admin */}
+                  {project.userId?._id && user?.id && (project.userId._id.toString() === user.id || user.email === "admin@admin.nl") && (
                     <Link
                       href={`/yourprojects/edit-project/${projectId}`}
                       className="flex-1 bg-accent hover:bg-primary-hover text-white px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
