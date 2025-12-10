@@ -6,6 +6,7 @@ import Navbar from "../../components/Navbar";
 import ProjectCard from "../../components/ProjectCard";
 import Image from "next/image";
 import SkillTree, { SkillItem } from "../../components/SkillTree";
+import { getLanguageColor } from "@/app/lib/languageColors";
 
 interface Project {
   _id: string;
@@ -57,6 +58,7 @@ export default function UserProfilePage() {
   const [skillItems, setSkillItems] = useState<SkillItem[] | null>(null);
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [skillsError, setSkillsError] = useState<string | null>(null);
+  const [hoveredLanguage, setHoveredLanguage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -337,37 +339,66 @@ export default function UserProfilePage() {
             </div>
           ) : skillItems && skillItems.length > 0 ? (
             <div className="mb-6">
-              <SkillTree items={skillItems} />
+              <SkillTree
+                items={skillItems}
+                onHoverLanguage={setHoveredLanguage}
+                activeLanguage={hoveredLanguage}
+              />
 
-              {/* New: per‑language cards */}
+              {/* Per‑language cards (act as legend) */}
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {skillItems.map((skill) => (
-                  <div
-                    key={skill.language}
-                    className="bg-white rounded-large p-4 shadow-elevated border border-gray-100"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-semibold text-gray-900">
-                        {skill.language}
-                      </h4>
-                      <span className="text-xs text-gray-500">
-                        {skill.percentage}%
-                      </span>
+                {skillItems.map((skill) => {
+                  const isActive = hoveredLanguage === skill.language;
+                  const color = getLanguageColor(skill.language);
+
+                  return (
+                    <div
+                      key={skill.language}
+                      onMouseEnter={() => setHoveredLanguage(skill.language)}
+                      onMouseLeave={() => setHoveredLanguage(null)}
+                      className={`rounded-large p-4 border transition-all duration-200 ${
+                        isActive ? "-translate-y-0.5 shadow-lg" : "shadow-elevated"
+                      }`}
+                      style={{
+                        // lighter border when idle, stronger when active
+                        borderColor: isActive ? `${color}66` : `${color}33`,
+                        // base white background
+                        backgroundColor: "#ffffff",
+                        // language‑tinted gradient like the profile header
+                        backgroundImage: isActive
+                          ? `linear-gradient(to bottom right, ${color}1a, #ffffff, ${color}26)`
+                          : "none",
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full"
+                            style={{ backgroundColor: color }}
+                          />
+                          <h4 className="font-semibold text-gray-900">
+                            {skill.language}
+                          </h4>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {skill.percentage}%
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-700">
+                        Projects:{" "}
+                        <span className="font-semibold">
+                          {skill.projects}
+                        </span>
+                      </p>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Certificates:{" "}
+                        <span className="font-semibold">0</span>
+                      </p>
                     </div>
-
-                    <p className="text-sm text-gray-700">
-                      Projects:{" "}
-                      <span className="font-semibold">
-                        {skill.projects}
-                      </span>
-                    </p>
-
-                    {/* Placeholder certificates count (non‑functional for now) */}
-                    <p className="mt-1 text-xs text-gray-500">
-                      Certificates: <span className="font-semibold">0</span>
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : null}

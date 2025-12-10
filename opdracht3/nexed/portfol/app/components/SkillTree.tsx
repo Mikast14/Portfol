@@ -10,9 +10,11 @@ export interface SkillItem {
 
 interface SkillTreeProps {
   items: SkillItem[];
+  onHoverLanguage?: (language: string | null) => void;
+  activeLanguage?: string | null;
 }
 
-export default function SkillTree({ items }: SkillTreeProps) {
+export default function SkillTree({ items, onHoverLanguage, activeLanguage }: SkillTreeProps) {
   // Compact settings
   const size = 260;
   const center = size / 2;
@@ -46,7 +48,6 @@ export default function SkillTree({ items }: SkillTreeProps) {
       });
     }
 
-    // Normalize in case of rounding gaps
     const totalPct = out.reduce((acc, it) => acc + it.percentage, 0) || 1;
     return out.map((it) => ({
       ...it,
@@ -54,7 +55,6 @@ export default function SkillTree({ items }: SkillTreeProps) {
     }));
   }, [items]);
 
-  // Helpers
   const toXY = (angle: number, r: number) => [
     center * 1.5 + r * Math.cos(angle),
     center + r * Math.sin(angle),
@@ -82,7 +82,6 @@ export default function SkillTree({ items }: SkillTreeProps) {
     ].join(" ");
   };
 
-  // Build slices
   let current = -Math.PI / 2; // start at top
   const slices = data.map((d, i) => {
     const sweep = d.weight * Math.PI * 2;
@@ -91,7 +90,10 @@ export default function SkillTree({ items }: SkillTreeProps) {
     current = end;
     const mid = (start + end) / 2;
 
-    const isHover = hoverIndex === i;
+    const isActiveByIndex = hoverIndex === i;
+    const isActiveByLanguage = activeLanguage && d.language === activeLanguage;
+    const isHover = isActiveByIndex || isActiveByLanguage;
+
     const bump = isHover ? 6 : 0;
     const [dx, dy] = [Math.cos(mid) * bump, Math.sin(mid) * bump];
     const color = getLanguageColor(d.language);
@@ -134,46 +136,23 @@ export default function SkillTree({ items }: SkillTreeProps) {
               <g
                 key={s.i}
                 transform={s.transform}
-                onMouseEnter={() => setHoverIndex(s.i)}
-                onMouseLeave={() => setHoverIndex(null)}
-                style={{ cursor: "pointer" }}
+                onMouseEnter={() => {
+                  setHoverIndex(s.i);
+                  onHoverLanguage?.(s.datum.language);
+                }}
+                onMouseLeave={() => {
+                  setHoverIndex(null);
+                  onHoverLanguage?.(null);
+                }}
               >
                 <path
                   d={s.path}
                   fill={s.color}
-                  opacity={hoverIndex === null || hoverIndex === s.i ? 0.95 : 0.45}
-                />
-                {/* Separator stroke for crisp edges */}
-                <path
-                  d={arcPath(s.start, s.end, outerR + (hoverIndex === s.i ? 4 : 0), outerR + (hoverIndex === s.i ? 4 : 0) - 1)}
-                  fill="none"
-                  stroke="white"
-                  strokeOpacity="0.8"
-                  strokeWidth={1}
+                  className="transition-transform duration-200"
                 />
               </g>
             ))}
-
-            {/* No text labels around the circle; legend below shows colors/text */}
           </svg>
-        </div>
-
-        {/* Legend (compact) */}
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 w-full max-w-sm">
-          {data.map((d, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span
-                className="inline-block w-3 h-3 rounded-sm"
-                style={{ backgroundColor: getLanguageColor(d.language) }}
-              />
-              <span className="text-sm text-gray-800 font-medium">
-                {d.language}
-              </span>
-              <span className="ml-auto text-xs text-gray-500">
-                {d.projects} proj.
-              </span>
-            </div>
-          ))}
         </div>
       </div>
     </div>
