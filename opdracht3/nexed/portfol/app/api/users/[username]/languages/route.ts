@@ -46,51 +46,47 @@ export async function GET(
 
     // Aggregate languages
     const langMap: LangMap = {};
-    // We also count primary language per project (largest byte share)
-    const primaryCounts: Record<string, number> = {};
 
     for (const p of projects) {
       const pr = parseRepo(p.githubRepo);
       if (!pr) continue;
 
       try {
-        const res = await fetch(`https://api.github.com/repos/${pr.owner}/${pr.repo}/languages`, { headers, cache: "no-store" });
+        const res = await fetch(
+          `https://api.github.com/repos/${pr.owner}/${pr.repo}/languages`,
+          { headers, cache: "no-store" }
+        );
         if (!res.ok) continue;
+
         const langs: Record<string, number> = await res.json();
 
-        // Sum bytes per language globally
+        // For each repo, count every language it uses once for "projects",
+        // and sum bytes globally.
         for (const [lang, bytes] of Object.entries(langs)) {
-          if (!langMap[lang]) langMap[lang] = { projects: 0, bytes: 0 };
+          if (!langMap[lang]) {
+            langMap[lang] = { projects: 0, bytes: 0 };
+          }
+          langMap[lang].projects += 1; // this repo uses this language
           langMap[lang].bytes += bytes;
         }
-
-        // Determine primary language by bytes for this project
-        const entries = Object.entries(langs);
-        if (entries.length > 0) {
-          const [primaryLang] = entries.sort((a, b) => b[1] - a[1])[0];
-          primaryCounts[primaryLang] = (primaryCounts[primaryLang] || 0) + 1;
-        }
       } catch {
-        // ignore errors per repo
+        // ignore per‑repo errors
       }
     }
 
-    // Merge primary project counts into langMap.projects
-    for (const [lang, count] of Object.entries(primaryCounts)) {
-      if (!langMap[lang]) langMap[lang] = { projects: 0, bytes: 0 };
-      langMap[lang].projects += count;
-    }
-
-    // Build response array
+    // Build response array from all languages used in all repos
     const items = Object.entries(langMap)
       .map(([language, stat]) => ({
         language,
         projects: stat.projects,
         bytes: stat.bytes,
-        percentage: totalProjects > 0 ? Math.round((stat.projects / totalProjects) * 100) : 0,
+        percentage:
+          totalProjects > 0
+            ? Math.round((stat.projects / totalProjects) * 100)
+            : 0,
       }))
-      // Sort by projects desc, then bytes desc
-      .sort((a, b) => (b.projects - a.projects) || (b.bytes - a.bytes));
+      // Sort by number of repos using the language, then by bytes
+      .sort((a, b) => b.projects - a.projects || b.bytes - a.bytes);
 
     return NextResponse.json({
       ok: true,

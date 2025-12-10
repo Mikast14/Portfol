@@ -66,7 +66,7 @@ export default function SkillTree({ items }: SkillTreeProps) {
 
   // Helpers
   const toXY = (angle: number, r: number) => [
-    center + r * Math.cos(angle),
+    center * 1.5 + r * Math.cos(angle),
     center + r * Math.sin(angle),
   ];
 
@@ -148,17 +148,17 @@ export default function SkillTree({ items }: SkillTreeProps) {
       </div>
 
       <div className="w-full flex flex-col items-center gap-4">
-        <div className="relative" style={{ width: size, maxWidth: "100%" }}>
+        <div className="relative" style={{ width: size * 1.5, maxWidth: "100%" }}>
           <svg
-            viewBox={`0 0 ${size} ${size}`}
+            viewBox={`0 0 ${size * 1.5} ${size}`}
             className="w-full h-auto"
             role="img"
             aria-label="Languages distribution"
           >
             {/* Center label */}
-            <circle cx={center} cy={center} r={innerR - 10} fill="#f8fafc" />
+            <circle cx={center * 1.5} cy={center} r={innerR - 10} fill="#f8fafc" />
             <text
-              x={center}
+              x={center * 1.5}
               y={center - 2}
               textAnchor="middle"
               className="fill-gray-800"

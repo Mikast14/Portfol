@@ -100,12 +100,54 @@ export default function UserProfilePage() {
   useEffect(() => {
     if (!username) return;
 
+    const storageKey = `userLangs:${username}`;
+    const ttlMs = 20 * 60 * 1000; // 20 minutes
+
+    const loadFromCache = () => {
+      if (typeof window === "undefined") return false;
+
+      try {
+        const cachedRaw = localStorage.getItem(storageKey);
+        if (!cachedRaw) return false;
+
+        const cached = JSON.parse(cachedRaw);
+        const now = Date.now();
+
+        if (!cached.timestamp || now - cached.timestamp > ttlMs || !cached.data) {
+          return false;
+        }
+
+        const items: SkillItem[] = (cached.data.languages || []).map((l: any) => ({
+          language: l.language,
+          projects: l.projects,
+          percentage: l.percentage,
+        }));
+
+        setSkillItems(items);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     const fetchSkills = async () => {
       setSkillsLoading(true);
       setSkillsError(null);
+
+      // Try cache first
+      const hasCache = loadFromCache();
+      if (hasCache) {
+        setSkillsLoading(false);
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(username)}/languages`, { cache: "no-store" });
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(username)}/languages`,
+          { cache: "no-store" }
+        );
         const data = await res.json();
+
         if (data.ok) {
           const items: SkillItem[] = (data.data.languages || []).map((l: any) => ({
             language: l.language,
@@ -113,6 +155,20 @@ export default function UserProfilePage() {
             percentage: l.percentage,
           }));
           setSkillItems(items);
+
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(
+                storageKey,
+                JSON.stringify({
+                  timestamp: Date.now(),
+                  data: data.data,
+                })
+              );
+            } catch {
+              // ignore storage failures
+            }
+          }
         } else {
           setSkillsError(data.error || "Failed to load skills");
           setSkillItems([]);
@@ -282,6 +338,37 @@ export default function UserProfilePage() {
           ) : skillItems && skillItems.length > 0 ? (
             <div className="mb-6">
               <SkillTree items={skillItems} />
+
+              {/* New: per‑language cards */}
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {skillItems.map((skill) => (
+                  <div
+                    key={skill.language}
+                    className="bg-white rounded-large p-4 shadow-elevated border border-gray-100"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="font-semibold text-gray-900">
+                        {skill.language}
+                      </h4>
+                      <span className="text-xs text-gray-500">
+                        {skill.percentage}%
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-gray-700">
+                      Projects:{" "}
+                      <span className="font-semibold">
+                        {skill.projects}
+                      </span>
+                    </p>
+
+                    {/* Placeholder certificates count (non‑functional for now) */}
+                    <p className="mt-1 text-xs text-gray-500">
+                      Certificates: <span className="font-semibold">0</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 
