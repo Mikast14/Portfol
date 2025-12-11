@@ -183,17 +183,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Get user email from token to check if admin
-    const authHeader = request.headers.get("authorization");
-    let userEmail: string | null = null;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      const decoded = verifyToken(token);
-      userEmail = decoded?.email || null;
-    }
-
-    // Check if the project belongs to the current user or if user is admin
-    if (project.userId?.toString() !== userId && userEmail !== "admin@admin.nl") {
+    // Check if the project belongs to the current user
+    if (project.userId?.toString() !== userId) {
       return NextResponse.json(
         { ok: false, error: "You can only edit your own projects" },
         { status: 403 }
@@ -316,17 +307,8 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Get user email from token to check if admin
-    const authHeader = request.headers.get("authorization");
-    let userEmail: string | null = null;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.substring(7);
-      const decoded = verifyToken(token);
-      userEmail = decoded?.email || null;
-    }
-
-    // Check ownership or if user is admin
-    if (project.userId?.toString() !== userId && userEmail !== "admin@admin.nl") {
+    // Check ownership
+    if (project.userId?.toString() !== userId) {
       return NextResponse.json(
         { ok: false, error: "You can only delete your own projects" },
         { status: 403 }

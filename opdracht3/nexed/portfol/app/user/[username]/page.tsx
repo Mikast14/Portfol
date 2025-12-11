@@ -347,7 +347,6 @@ export default function UserProfilePage() {
                     project={project}
                     mode="explore"
                     onOpen={() => router.push(`/explore/project/${project._id}?from=profile&username=${encodeURIComponent(user.username)}`)}
-                    onEdit={(id) => router.push(`/yourprojects/edit-project/${id}`)}
                   />
                 ))}
               </div>
