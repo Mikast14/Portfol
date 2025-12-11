@@ -44,53 +44,84 @@ export async function GET(
       ? { Authorization: `Bearer ${GITHUB_TOKEN}`, "User-Agent": "PortfolApp" }
       : { "User-Agent": "PortfolApp" };
 
-    // Aggregate languages
+    // langMap.bytes will now represent *per‑contributor* bytes aggregated over repos
     const langMap: LangMap = {};
-    // We also count primary language per project (largest byte share)
-    const primaryCounts: Record<string, number> = {};
 
     for (const p of projects) {
       const pr = parseRepo(p.githubRepo);
       if (!pr) continue;
 
       try {
-        const res = await fetch(`https://api.github.com/repos/${pr.owner}/${pr.repo}/languages`, { headers, cache: "no-store" });
-        if (!res.ok) continue;
-        const langs: Record<string, number> = await res.json();
+        const [langsRes, contribRes] = await Promise.all([
+          fetch(
+            `https://api.github.com/repos/${pr.owner}/${pr.repo}/languages`,
+            { headers, cache: "no-store" }
+          ),
+          fetch(
+            `https://api.github.com/repos/${pr.owner}/${pr.repo}/contributors?per_page=100&anon=1`,
+            { headers, cache: "no-store" }
+          ),
+        ]);
 
-        // Sum bytes per language globally
-        for (const [lang, bytes] of Object.entries(langs)) {
-          if (!langMap[lang]) langMap[lang] = { projects: 0, bytes: 0 };
-          langMap[lang].bytes += bytes;
+        if (!langsRes.ok) continue;
+
+        let contributorCount = 1;
+        if (contribRes.ok) {
+          const contribData = await contribRes.json();
+          if (Array.isArray(contribData) && contribData.length > 0) {
+            contributorCount = contribData.length;
+          }
         }
+        if (contributorCount <= 0) contributorCount = 1;
 
-        // Determine primary language by bytes for this project
-        const entries = Object.entries(langs);
-        if (entries.length > 0) {
-          const [primaryLang] = entries.sort((a, b) => b[1] - a[1])[0];
-          primaryCounts[primaryLang] = (primaryCounts[primaryLang] || 0) + 1;
+        const langs: Record<string, number> = await langsRes.json();
+
+        // For each repo, count every language once for "projects",
+        // and add bytes divided by contributors to approximate per‑person work.
+        for (const [lang, bytes] of Object.entries(langs)) {
+          if (!langMap[lang]) {
+            langMap[lang] = { projects: 0, bytes: 0 };
+          }
+          langMap[lang].projects += 1;
+          const perContributorBytes = bytes / contributorCount;
+          langMap[lang].bytes += perContributorBytes;
         }
       } catch {
-        // ignore errors per repo
+        // ignore per‑repo errors
       }
     }
 
-    // Merge primary project counts into langMap.projects
-    for (const [lang, count] of Object.entries(primaryCounts)) {
-      if (!langMap[lang]) langMap[lang] = { projects: 0, bytes: 0 };
-      langMap[lang].projects += count;
-    }
+    // Compute total "per‑contributor bytes" across all languages for global percentage
+    const totalBytes = Object.values(langMap).reduce(
+      (acc, stat) => acc + stat.bytes,
+      0
+    );
 
-    // Build response array
-    const items = Object.entries(langMap)
-      .map(([language, stat]) => ({
+    // Build response array using *average per‑contributor bytes per project* for percentages
+    const rawItems = Object.entries(langMap).map(([language, stat]) => {
+      const avgBytes = stat.projects > 0 ? stat.bytes / stat.projects : 0;
+      return {
         language,
         projects: stat.projects,
-        bytes: stat.bytes,
-        percentage: totalProjects > 0 ? Math.round((stat.projects / totalProjects) * 100) : 0,
+        bytes: stat.bytes, // now interpreted as aggregated per‑contributor bytes
+        avgBytes,
+      };
+    });
+
+    const totalAvgBytes = rawItems.reduce(
+      (acc, it) => acc + it.avgBytes,
+      0
+    );
+
+    const items = rawItems
+      .map((it) => ({
+        ...it,
+        percentage:
+          totalAvgBytes > 0
+            ? Math.round((it.avgBytes / totalAvgBytes) * 100)
+            : 0,
       }))
-      // Sort by projects desc, then bytes desc
-      .sort((a, b) => (b.projects - a.projects) || (b.bytes - a.bytes));
+      .sort((a, b) => b.avgBytes - a.avgBytes || b.projects - a.projects);
 
     return NextResponse.json({
       ok: true,

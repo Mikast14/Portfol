@@ -6,6 +6,7 @@ import Navbar from "../../components/Navbar";
 import ProjectCard from "../../components/ProjectCard";
 import Image from "next/image";
 import SkillTree, { SkillItem } from "../../components/SkillTree";
+import { getLanguageColor } from "@/app/lib/languageColors";
 
 interface Project {
   _id: string;
@@ -57,6 +58,7 @@ export default function UserProfilePage() {
   const [skillItems, setSkillItems] = useState<SkillItem[] | null>(null);
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [skillsError, setSkillsError] = useState<string | null>(null);
+  const [hoveredLanguage, setHoveredLanguage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -100,12 +102,54 @@ export default function UserProfilePage() {
   useEffect(() => {
     if (!username) return;
 
+    const storageKey = `userLangs:${username}`;
+    const ttlMs = 20 * 60 * 1000; // 20 minutes
+
+    const loadFromCache = () => {
+      if (typeof window === "undefined") return false;
+
+      try {
+        const cachedRaw = localStorage.getItem(storageKey);
+        if (!cachedRaw) return false;
+
+        const cached = JSON.parse(cachedRaw);
+        const now = Date.now();
+
+        if (!cached.timestamp || now - cached.timestamp > ttlMs || !cached.data) {
+          return false;
+        }
+
+        const items: SkillItem[] = (cached.data.languages || []).map((l: any) => ({
+          language: l.language,
+          projects: l.projects,
+          percentage: l.percentage,
+        }));
+
+        setSkillItems(items);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     const fetchSkills = async () => {
       setSkillsLoading(true);
       setSkillsError(null);
+
+      // Try cache first
+      const hasCache = loadFromCache();
+      if (hasCache) {
+        setSkillsLoading(false);
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/users/${encodeURIComponent(username)}/languages`, { cache: "no-store" });
+        const res = await fetch(
+          `/api/users/${encodeURIComponent(username)}/languages`,
+          { cache: "no-store" }
+        );
         const data = await res.json();
+
         if (data.ok) {
           const items: SkillItem[] = (data.data.languages || []).map((l: any) => ({
             language: l.language,
@@ -113,6 +157,20 @@ export default function UserProfilePage() {
             percentage: l.percentage,
           }));
           setSkillItems(items);
+
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem(
+                storageKey,
+                JSON.stringify({
+                  timestamp: Date.now(),
+                  data: data.data,
+                })
+              );
+            } catch {
+              // ignore storage failures
+            }
+          }
         } else {
           setSkillsError(data.error || "Failed to load skills");
           setSkillItems([]);
@@ -281,7 +339,65 @@ export default function UserProfilePage() {
             </div>
           ) : skillItems && skillItems.length > 0 ? (
             <div className="mb-6">
-              <SkillTree items={skillItems} />
+              <SkillTree
+                items={skillItems}
+                onHoverLanguage={setHoveredLanguage}
+                activeLanguage={hoveredLanguage}
+              />
+
+              {/* Per‑language cards (act as legend) */}
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {skillItems.map((skill) => {
+                  const isActive = hoveredLanguage === skill.language;
+                  const color = getLanguageColor(skill.language); // from lib/languageColors
+
+                  return (
+                    <div
+                      key={skill.language}
+                      onMouseEnter={() => setHoveredLanguage(skill.language)}
+                      onMouseLeave={() => setHoveredLanguage(null)}
+                      className={`rounded-large p-4 border transition-all duration-200 ${
+                        isActive ? "-translate-y-0.5 shadow-lg" : "shadow-elevated"
+                      }`}
+                      style={{
+                        // border like profile header, but tinted by language
+                        borderColor: isActive ? `${color}66` : `${color}33`,
+                        // gradient similar to bg-gradient-to-br from-accent/10 via-white to-primary-hover/10
+                        backgroundImage: isActive
+                          ? `linear-gradient(to bottom right, ${color}1a, #ffffff, ${color}33)`
+                          : `linear-gradient(to bottom right, ${color}0d, #ffffff, ${color}1a)`,
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full"
+                            style={{ backgroundColor: color }}
+                          />
+                          <h4 className="font-semibold text-gray-900">
+                            {skill.language}
+                          </h4>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {skill.percentage}%
+                        </span>
+                      </div>
+
+                      <p className="text-sm text-gray-700">
+                        Projects:{" "}
+                        <span className="font-semibold">
+                          {skill.projects}
+                        </span>
+                      </p>
+
+                      <p className="mt-1 text-xs text-gray-500">
+                        Certificates:{" "}
+                        <span className="font-semibold">0</span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
 
