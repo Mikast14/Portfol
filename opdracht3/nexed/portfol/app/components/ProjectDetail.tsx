@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +35,8 @@ interface Project {
   platforms: string[];
   image?: string;
   images?: string[];
+  video?: string;
+  videos?: string[];
   githubDisplaySettings?: GitHubDisplaySettings;
   userId?: {
     _id?: string;
@@ -46,6 +48,44 @@ interface Project {
   createdAt: string;
   updatedAt: string;
 }
+
+type MediaItem = {
+  type: "image" | "video" | "youtube";
+  url: string;
+  embedUrl?: string;
+  thumbUrl?: string;
+};
+
+const parseYouTube = (url: string) => {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtube.com")) {
+      const v = u.searchParams.get("v");
+      if (v) return v;
+      const parts = u.pathname.split("/");
+      const idx = parts.findIndex((p) => p === "shorts");
+      if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+    }
+    if (u.hostname === "youtu.be") {
+      const id = u.pathname.replace("/", "");
+      if (id) return id;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const toYouTubeMedia = (url: string): MediaItem | null => {
+  const id = parseYouTube(url);
+  if (!id) return null;
+  return {
+    type: "youtube",
+    url,
+    embedUrl: `https://www.youtube.com/embed/${id}`,
+    thumbUrl: `https://img.youtube.com/vi/${id}/hqdefault.jpg`,
+  };
+};
 
 interface GitHubContributor {
   id: number;
@@ -81,21 +121,21 @@ const platformIcons: Record<string, React.ReactElement> = {
   ),
   ios: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+      <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
     </svg>
   ),
   android: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4486.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4486.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1522l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1349 1.2297L4.8429 5.5773a.4161.4161 0 00-.5676-.1522.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.186.8532 13.9527.8532 17.2679h22.2934c0-3.3152-1.8356-6.0819-4.7787-7.9465m-7.6807 2.5548c-2.9145 0-5.3275 2.3689-5.3275 5.2834s2.413 5.2834 5.3275 5.2834 5.3276-2.3689 5.3276-5.2834-2.4131-5.2834-5.3276-5.2834z"/>
+      <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4486.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4486.9993.9993 0 .5511-.4483.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1522l-2.0223 3.503C15.5902 8.2439 13.8533 7.8508 12 7.8508s-3.5902.3931-5.1349 1.2297L4.8429 5.5773a.4161.4161 0 00-.5676-.1522.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.186.8532 13.9527.8532 17.2679h22.2934c0-3.3152-1.8356-6.0819-4.7787-7.9465m-7.6807 2.5548c-2.9145 0-5.3275 2.3689-5.3275 5.2834s2.413 5.2834 5.3275 5.2834 5.3276-2.3689 5.3276-5.2834-2.4131-5.2834-5.3276-5.2834z" />
     </svg>
   ),
   game: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-      <line x1="6" x2="10" y1="11" y2="11"/>
-      <line x1="8" x2="8" y1="9" y2="13"/>
-      <line x1="15" x2="15.01" y1="12" y2="12"/>
-      <line x1="18" x2="18.01" y1="10" y2="10"/>
-      <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/>
+      <line x1="6" x2="10" y1="11" y2="11" />
+      <line x1="8" x2="8" y1="9" y2="13" />
+      <line x1="15" x2="15.01" y1="12" y2="12" />
+      <line x1="18" x2="18.01" y1="10" y2="10" />
+      <path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z" />
     </svg>
   ),
   app: (
@@ -110,19 +150,19 @@ const platformIcons: Record<string, React.ReactElement> = {
   ),
   playstation: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M22.584 17.011c-.43.543-1.482.93-1.482.93l-7.833 2.817V18.68l5.764-2.057c.655-.234.755-.566.223-.74-.53-.175-1.491-.125-2.146.111l-3.84 1.354v-2.155l.22-.075s1.11-.394 2.671-.567c1.56-.172 3.472.024 4.972.593 1.69.535 1.88 1.323 1.451 1.866zm-8.57-3.537V8.162c0-.624-.114-1.198-.699-1.36-.447-.144-.725.272-.725.895V21l-3.584-1.139V4c1.524.283 3.744.953 4.937 1.355 3.035 1.043 4.064 2.342 4.064 5.267 0 2.851-1.758 3.932-3.992 2.852zm-11.583 4.99c-1.735-.49-2.024-1.51-1.233-2.097.731-.542 1.974-.95 1.974-.95l5.138-1.83v2.086l-3.697 1.325c-.653.234-.754.566-.223.74.531.175 1.493.125 2.147-.11l1.773-.644v1.865l-.353.06c-1.774.29-3.664.169-5.526-.445z"/>
+      <path d="M22.584 17.011c-.43.543-1.482.93-1.482.93l-7.833 2.817V18.68l5.764-2.057c.655-.234.755-.566.223-.74-.53-.175-1.491-.125-2.146.111l-3.84 1.354v-2.155l.22-.075s1.11-.394 2.671-.567c1.56-.172 3.472.024 4.972.593 1.69.535 1.88 1.323 1.451 1.866zm-8.57-3.537V8.162c0-.624-.114-1.198-.699-1.36-.447-.144-.725.272-.725.895V21l-3.584-1.139V4c1.524.283 3.744.953 4.937 1.355 3.035 1.043 4.064 2.342 4.064 5.267 0 2.851-1.758 3.932-3.992 2.852zm-11.583 4.99c-1.735-.49-2.024-1.51-1.233-2.097.731-.542 1.974-.95 1.974-.95l5.138-1.83v2.086l-3.697 1.325c-.653.234-.754.566-.223.74.531.175 1.493.125 2.147-.11l1.773-.644v1.865l-.353.06c-1.774.29-3.664.169-5.526-.445z" />
     </svg>
   ),
   xbox: (
     <svg className="w-5 h-5" viewBox="0 0 32 32" fill="currentColor">
-      <path d="M16 5.425c-1.888-1.125-4.106-1.922-6.473-2.249l-0.092-0.010c-0.070-0.005-0.152-0.008-0.234-0.008-0.613 0-1.188 0.16-1.687 0.441l0.017-0.009c2.357-1.634 5.277-2.61 8.426-2.61 0.008 0 0.016 0 0.024 0h0.019c0.005 0 0.011 0 0.018 0 3.157 0 6.086 0.976 8.501 2.642l-0.050-0.033c-0.478-0.272-1.051-0.433-1.662-0.433-0.085 0-0.169 0.003-0.252 0.009l0.011-0.001c-2.459 0.336-4.677 1.13-6.648 2.297l0.082-0.045zM5.554 5.268c-0.041 0.014-0.077 0.032-0.11 0.054l0.002-0.001c-2.758 2.723-4.466 6.504-4.466 10.684 0 3.584 1.256 6.875 3.353 9.457l-0.022-0.028c-1.754-3.261 4.48-12.455 7.61-16.159-3.53-3.521-5.277-4.062-6.015-4.062-0.010-0-0.021-0.001-0.032-0.001-0.115 0-0.225 0.021-0.326 0.060l0.006-0.002zM20.083 9.275c3.129 3.706 9.367 12.908 7.605 16.161 2.075-2.554 3.332-5.845 3.332-9.43 0-4.181-1.709-7.962-4.467-10.684l-0.002-0.002c-0.029-0.021-0.063-0.039-0.1-0.052l-0.003-0.001c-0.1-0.036-0.216-0.056-0.336-0.056-0.005 0-0.011 0-0.016 0h0.001c-0.741-0-2.485 0.543-6.014 4.063zM6.114 27.306c2.627 2.306 6.093 3.714 9.888 3.714s7.261-1.407 9.905-3.728l-0.017 0.015c2.349-2.393-5.402-10.901-9.89-14.29-4.483 3.39-12.24 11.897-9.886 14.29z"/>
+      <path d="M16 5.425c-1.888-1.125-4.106-1.922-6.473-2.249l-0.092-0.010c-0.070-0.005-0.152-0.008-0.234-0.008-0.613 0-1.188 0.16-1.687 0.441l0.017-0.009c2.357-1.634 5.277-2.61 8.426-2.61 0.008 0 0.016 0 0.024 0h0.019c0.005 0 0.011 0 0.018 0 3.157 0 6.086 0.976 8.501 2.642l-0.050-0.033c-0.478-0.272-1.051-0.433-1.662-0.433-0.085 0-0.169 0.003-0.252 0.009l0.011-0.001c-2.459 0.336-4.677 1.13-6.648 2.297l0.082-0.045zM5.554 5.268c-0.041 0.014-0.077 0.032-0.11 0.054l0.002-0.001c-2.758 2.723-4.466 6.504-4.466 10.684 0 3.584 1.256 6.875 3.353 9.457l-0.022-0.028c-1.754-3.261 4.48-12.455 7.61-16.159-3.53-3.521-5.277-4.062-6.015-4.062-0.010-0-0.021-0.001-0.032-0.001-0.115 0-0.225 0.021-0.326 0.060l0.006-0.002zM20.083 9.275c3.129 3.706 9.367 12.908 7.605 16.161 2.075-2.554 3.332-5.845 3.332-9.43 0-4.181-1.709-7.962-4.467-10.684l-0.002-0.002c-0.029-0.021-0.063-0.039-0.1-0.052l-0.003-0.001c-0.1-0.036-0.216-0.056-0.336-0.056-0.005 0-0.011 0-0.016 0h0.001c-0.741-0-2.485 0.543-6.014 4.063zM6.114 27.306c2.627 2.306 6.093 3.714 9.888 3.714s7.261-1.407 9.905-3.728l-0.017 0.015c2.349-2.393-5.402-10.901-9.89-14.29-4.483 3.39-12.24 11.897-9.886 14.29z" />
     </svg>
   ),
   nintendo: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path fillRule="evenodd" clipRule="evenodd" d="M8 4H5C2.79086 4 1 5.79086 1 8V16C1 18.2091 2.79086 20 5 20H8V4ZM4.5 10C5.32843 10 6 9.32843 6 8.5C6 7.67157 5.32843 7 4.5 7C3.67157 7 3 7.67157 3 8.5C3 9.32843 3.67157 10 4.5 10Z"/>
-      <path d="M10 20H14V4H10V20Z"/>
-      <path fillRule="evenodd" clipRule="evenodd" d="M16 4V20H19C21.2091 20 23 18.2091 23 16V8C23 5.79086 21.2091 4 19 4H16ZM19.5 17C20.3284 17 21 16.3284 21 15.5C21 14.6716 20.3284 14 19.5 14C18.6716 14 18 14.6716 18 15.5C18 16.3284 18.6716 17 19.5 17Z"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M8 4H5C2.79086 4 1 5.79086 1 8V16C1 18.2091 2.79086 20 5 20H8V4ZM4.5 10C5.32843 10 6 9.32843 6 8.5C6 7.67157 5.32843 7 4.5 7C3.67157 7 3 7.67157 3 8.5C3 9.32843 3.67157 10 4.5 10Z" />
+      <path d="M10 20H14V4H10V20Z" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M16 4V20H19C21.2091 20 23 18.2091 23 16V8C23 5.79086 21.2091 4 19 4H16ZM19.5 17C20.3284 17 21 16.3284 21 15.5C21 14.6716 20.3284 14 19.5 14C18.6716 14 18 14.6716 18 15.5C18 16.3284 18.6716 17 19.5 17Z" />
     </svg>
   ),
 };
@@ -136,17 +176,17 @@ interface ProjectDetailProps {
 export default function ProjectDetail({ projectId, from, username }: ProjectDetailProps) {
   const { isAuthenticated, user } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
-  
+
   const fromProfile = from === "profile";
   const fromYourProjects = from === "yourprojects";
-  
+
   // Get settings from project or use defaults
-  const settings: GitHubDisplaySettings = project?.githubDisplaySettings 
+  const settings: GitHubDisplaySettings = project?.githubDisplaySettings
     ? { ...DEFAULT_SETTINGS, ...project.githubDisplaySettings }
     : DEFAULT_SETTINGS;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
   const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -188,7 +228,25 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
 
   // Logo is stored separately in image field, subimages are in images array
   const logo = project?.image || null;
-  const images = project?.images && project.images.length > 0 ? project.images : [];
+  const mediaItems: MediaItem[] = (() => {
+    const items: MediaItem[] = [];
+    if (project?.video) {
+      const yt = toYouTubeMedia(project.video);
+      items.push(yt || { type: "video", url: project.video });
+    }
+    if (project?.videos && project.videos.length > 0) {
+      items.push(
+        ...project.videos.map((url: string) => {
+          const yt = toYouTubeMedia(url);
+          return yt || { type: "video", url };
+        })
+      );
+    }
+    if (project?.images && project.images.length > 0) {
+      items.push(...project.images.map((url: string) => ({ type: "image", url })));
+    }
+    return items;
+  })();
 
   const parseRepo = (input: string) => {
     const raw = input.trim();
@@ -391,53 +449,50 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
     }
   };
 
-  // Auto-advance carousel every 5 seconds
-  useEffect(() => {
-    if (images.length <= 1) return;
-
-    // Clear any existing interval
+  const clearCarouselInterval = useCallback(() => {
     if (carouselIntervalRef.current) {
       clearInterval(carouselIntervalRef.current);
+      carouselIntervalRef.current = null;
+    }
+  }, []);
+
+  const isVideoSlideActive = useMemo(() => {
+    const current = mediaItems[selectedMediaIndex];
+    return current?.type === "video" || current?.type === "youtube";
+  }, [mediaItems, selectedMediaIndex]);
+
+  // Auto-advance carousel only when not on a video slide
+  useEffect(() => {
+    clearCarouselInterval();
+
+    if (mediaItems.length <= 1 || isVideoSlideActive) {
+      return;
     }
 
     const interval = setInterval(() => {
-      setSelectedImageIndex((prevIndex) => {
+      setSelectedMediaIndex((prevIndex) => {
         setSlideDirection("right");
-        return (prevIndex + 1) % images.length;
+        return (prevIndex + 1) % mediaItems.length;
       });
     }, 5000);
 
     carouselIntervalRef.current = interval;
 
     return () => {
-      if (carouselIntervalRef.current) {
-        clearInterval(carouselIntervalRef.current);
-      }
+      clearCarouselInterval();
     };
-  }, [images.length]);
+  }, [mediaItems.length, isVideoSlideActive, clearCarouselInterval]);
 
   // Reset carousel timer when user manually selects an image
-  const handleImageSelect = (index: number) => {
+  const handleMediaSelect = (index: number) => {
     // Determine slide direction
-    if (index > selectedImageIndex) {
+    if (index > selectedMediaIndex) {
       setSlideDirection("right");
-    } else if (index < selectedImageIndex) {
+    } else if (index < selectedMediaIndex) {
       setSlideDirection("left");
     }
-    setSelectedImageIndex(index);
-    // Reset the carousel timer
-    if (carouselIntervalRef.current) {
-      clearInterval(carouselIntervalRef.current);
-    }
-    if (images.length > 1) {
-      const interval = setInterval(() => {
-        setSelectedImageIndex((prevIndex) => {
-          setSlideDirection("right");
-          return (prevIndex + 1) % images.length;
-        });
-      }, 5000);
-      carouselIntervalRef.current = interval;
-    }
+    setSelectedMediaIndex(index);
+    clearCarouselInterval();
   };
 
   const scrollThumbnails = (direction: "left" | "right") => {
@@ -451,17 +506,17 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
   };
 
   const handlePreviousImage = () => {
-    if (images.length <= 1) return;
-    const newIndex = selectedImageIndex === 0 ? images.length - 1 : selectedImageIndex - 1;
+    if (mediaItems.length <= 1) return;
+    const newIndex = selectedMediaIndex === 0 ? mediaItems.length - 1 : selectedMediaIndex - 1;
     setSlideDirection("left");
-    handleImageSelect(newIndex);
+    handleMediaSelect(newIndex);
   };
 
   const handleNextImage = () => {
-    if (images.length <= 1) return;
-    const newIndex = (selectedImageIndex + 1) % images.length;
+    if (mediaItems.length <= 1) return;
+    const newIndex = (selectedMediaIndex + 1) % mediaItems.length;
     setSlideDirection("right");
-    handleImageSelect(newIndex);
+    handleMediaSelect(newIndex);
   };
 
   useEffect(() => {
@@ -496,7 +551,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setContributorsError(null);
       try {
         // Try API route first
-        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contributors?per_page=10`);     
+        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contributors?per_page=10`);
         if (!res.ok) {
           // Fallback to direct GitHub API call
           const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
@@ -507,7 +562,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           if (GITHUB_TOKEN) {
             headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
           }
-          
+
           res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contributors?per_page=10`, { headers });
           if (!res.ok) {
             throw new Error(`GitHub error ${res.status}`);
@@ -529,7 +584,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           } catch { }
           return;
         }
-        
+
         const data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load contributors");
@@ -555,7 +610,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
   // NEW: fetch repo metadata (stars, forks, language, active status)
   // Only fetch if any of the settings require it
   useEffect(() => {
-    const needsRepoInfo = 
+    const needsRepoInfo =
       settings.activeStatus === "auto" ||
       settings.stars === "auto" ||
       settings.forks === "auto" ||
@@ -602,7 +657,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           if (GITHUB_TOKEN) {
             headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
           }
-          
+
           res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers });
           if (!res.ok) {
             throw new Error(`GitHub error ${res.status}`);
@@ -623,7 +678,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           } catch { }
           return;
         }
-        
+
         const data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load repository info");
@@ -666,14 +721,14 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           return;
         }
       }
-    } catch {}
+    } catch { }
 
     (async () => {
       setLanguagesLoading(true);
       setLanguagesError(null);
       try {
         // Try API route first
-        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`); 
+        let res = await fetch(`/api/github/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/languages`);
         if (!res.ok) {
           // Fallback to direct GitHub API call
           const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
@@ -684,7 +739,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           if (GITHUB_TOKEN) {
             headers.Authorization = `Bearer ${GITHUB_TOKEN}`;
           }
-          
+
           res = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, { headers });
           if (!res.ok) {
             throw new Error(`GitHub error ${res.status}`);
@@ -701,10 +756,10 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           setLanguages(items);
           try {
             localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: items }));
-          } catch {}
+          } catch { }
           return;
         }
-        
+
         const data = await res.json();
         if (!data.ok) {
           throw new Error(data.error || "Failed to load languages");
@@ -713,7 +768,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
         setLanguages(items);
         try {
           localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, data: items }));
-        } catch {}
+        } catch { }
       } catch (e: unknown) {
         setLanguagesError(e instanceof Error ? e.message : "Failed to load languages");
       } finally {
@@ -737,19 +792,19 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
         <div className="mt-4 text-center">
           <Link
             href={
-              fromYourProjects 
-                ? "/yourprojects" 
-                : fromProfile && username 
-                ? `/user/${encodeURIComponent(username)}` 
-                : "/explore"
+              fromYourProjects
+                ? "/yourprojects"
+                : fromProfile && username
+                  ? `/user/${encodeURIComponent(username)}`
+                  : "/explore"
             }
             className="text-accent hover:text-primary-hover font-medium"
           >
-            ← {fromYourProjects 
-              ? "Back to Your Projects" 
-              : fromProfile && username 
-              ? "Back to Profile" 
-              : "Back to Explore"}
+            ← {fromYourProjects
+              ? "Back to Your Projects"
+              : fromProfile && username
+                ? "Back to Profile"
+                : "Back to Explore"}
           </Link>
         </div>
       </div>
@@ -790,32 +845,48 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
           {/* Main media player */}
           <div className="bg-white rounded-large shadow-elevated overflow-hidden group">
             <div className="relative w-full bg-gray-200 rounded-large overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
-              {images.length > 0 ? (
+              {mediaItems.length > 0 ? (
                 <div className="relative w-full h-full overflow-hidden">
                   <div
                     className="flex transition-transform duration-500 ease-in-out h-full"
                     style={{
-                      transform: `translateX(-${selectedImageIndex * 100}%)`,
+                      transform: `translateX(-${selectedMediaIndex * 100}%)`,
                     }}
                   >
-                    {images.map((img, index) => (
+                    {mediaItems.map((item, index) => (
                       <div
-                        key={`${img}-${index}`}
+                        key={`${item.url}-${index}`}
                         className="relative shrink-0 w-full h-full"
                       >
-                        <Image
-                          src={img}
-                          alt={`${project.name} - Image ${index + 1}`}
-                          fill
-                          className={`object-cover transition-transform duration-500 ${index === selectedImageIndex ? "group-hover:scale-105" : ""
-                            }`}
-                          priority={index === 0}
-                        />
+                        {item.type === "image" ? (
+                          <Image
+                            src={item.url}
+                            alt={`${project.name} - Image ${index + 1}`}
+                            fill
+                            className={`object-cover transition-transform duration-500 ${index === selectedMediaIndex ? "group-hover:scale-105" : ""
+                              }`}
+                            priority={index === 0}
+                          />
+                        ) : item.type === "youtube" && item.embedUrl ? (
+                          <iframe
+                            src={item.embedUrl}
+                            title={`${project.name} - Video ${index + 1}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video
+                            src={item.url}
+                            controls
+                            className="w-full h-full object-cover bg-black"
+                          />
+                        )}
                       </div>
                     ))}
                   </div>
                   {/* Navigation Arrows */}
-                  {images.length > 1 && (
+                  {mediaItems.length > 1 && (
                     <>
                       <button
                         onClick={handlePreviousImage}
@@ -840,39 +911,59 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                 </div>
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-gray-200">
-                  <span className="text-gray-500">No image available</span>
+                  <span className="text-gray-500">No media available</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Thumbnail strip */}
-          {images.length > 1 && (
+          {mediaItems.length > 1 && (
             <div className="relative bg-white rounded-large p-4 shadow-elevated">
               <div
                 ref={thumbnailScrollRef}
                 className="flex gap-2 overflow-x-auto scrollbar-hide"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                {images.map((img, index) => (
+                {mediaItems.map((item, index) => (
                   <button
                     key={index}
-                    onClick={() => handleImageSelect(index)}
-                    className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all group ${selectedImageIndex === index
-                        ? "border-accent"
-                        : "border-gray-300 hover:border-gray-400"
+                    onClick={() => handleMediaSelect(index)}
+                    className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all group ${selectedMediaIndex === index
+                      ? "border-accent"
+                      : "border-gray-300 hover:border-gray-400"
                       }`}
                   >
-                    <Image
-                      src={img}
-                      alt={`Thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-110"
-                    />
+                    {item.type === "image" ? (
+                      <Image
+                        src={item.url}
+                        alt={`Thumbnail ${index + 1}`}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                    ) : item.type === "youtube" && item.thumbUrl ? (
+                      <div className="w-full h-full relative">
+                        <Image
+                          src={item.thumbUrl}
+                          alt={`Thumbnail ${index + 1}`}
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="bg-black/60 text-white rounded-full p-2">
+                            ▶
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full bg-black flex items-center justify-center text-white text-sm">
+                        Video {index + 1}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
-              {images.length > 4 && (
+              {mediaItems.length > 4 && (
                 <>
                   <button
                     onClick={() => scrollThumbnails("left")}
@@ -929,9 +1020,9 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
               // Filter out project types and get actual platforms
               const actualPlatforms = project.platforms.filter((p: string) => !PROJECT_TYPES.includes(p.toLowerCase()));
               const projectType = project.platforms.find((p: string) => PROJECT_TYPES.includes(p.toLowerCase()));
-              
+
               if (actualPlatforms.length === 0 && !projectType) return null;
-              
+
               return (
                 <div>
                   <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">Platforms</div>
@@ -969,95 +1060,95 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
               settings.language === "auto" ||
               settings.stars === "auto" ||
               settings.forks === "auto") && (
-              <div>
-                <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">GitHub Stats</div>
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {(settings.activeStatus === "auto" ||
-                    settings.stars === "auto" ||
-                    settings.forks === "auto" ||
-                    settings.language === "auto") && (
-                      <>
-                        {repoLoading && <span className="text-gray-500">Loading repository info...</span>}
-                        {repoError && <span className="text-red-500">{repoError}</span>}
-                      </>
+                <div>
+                  <div className="text-accent font-medium mb-2 text-xs uppercase tracking-wide">GitHub Stats</div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    {(settings.activeStatus === "auto" ||
+                      settings.stars === "auto" ||
+                      settings.forks === "auto" ||
+                      settings.language === "auto") && (
+                        <>
+                          {repoLoading && <span className="text-gray-500">Loading repository info...</span>}
+                          {repoError && <span className="text-red-500">{repoError}</span>}
+                        </>
+                      )}
+
+                    {/* Active/Inactive Status */}
+                    {settings.activeStatus !== "hide" && (() => {
+                      if (settings.activeStatus === "auto" && repoInfo) {
+                        const repoUpdatedTime = new Date(repoInfo.updated_at).getTime();
+                        const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
+                        const active = repoUpdatedTime > fourteenDaysAgo;
+                        return (
+                          <span className={`px-2 py-1 rounded-full ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                            {active ? "Active" : "Inactive"}
+                          </span>
+                        );
+                      } else if (settings.activeStatus === "active") {
+                        return <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">Active</span>;
+                      } else if (settings.activeStatus === "inactive") {
+                        return <span className="px-2 py-1 rounded-full bg-red-100 text-red-800">Inactive</span>;
+                      }
+                      return null;
+                    })()}
+
+                    {/* Stars */}
+                    {settings.stars === "auto" && repoInfo && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">⭐ {repoInfo.stargazers_count}</span>
                     )}
 
-                  {/* Active/Inactive Status */}
-                  {settings.activeStatus !== "hide" && (() => {
-                    if (settings.activeStatus === "auto" && repoInfo) {
-                      const repoUpdatedTime = new Date(repoInfo.updated_at).getTime();
-                      const fourteenDaysAgo = Date.now() - (14 * 24 * 60 * 60 * 1000);
-                      const active = repoUpdatedTime > fourteenDaysAgo;
-                      return (
-                        <span className={`px-2 py-1 rounded-full ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                          {active ? "Active" : "Inactive"}
-                        </span>
-                      );
-                    } else if (settings.activeStatus === "active") {
-                      return <span className="px-2 py-1 rounded-full bg-green-100 text-green-800">Active</span>;
-                    } else if (settings.activeStatus === "inactive") {
-                      return <span className="px-2 py-1 rounded-full bg-red-100 text-red-800">Inactive</span>;
-                    }
-                    return null;
-                  })()}
-
-                  {/* Stars */}
-                  {settings.stars === "auto" && repoInfo && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">⭐ {repoInfo.stargazers_count}</span>
-                  )}
-
-                  {/* Forks */}
-                  {settings.forks === "auto" && repoInfo && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">🔄 {repoInfo.forks_count}</span>
-                  )}
-                </div>
-
-                {/* NEW: Language bar (all languages) */}
-                {settings.language === "auto" && (
-                  <div className="mt-3">
-                    {languagesLoading && <p className="text-xs text-gray-500">Loading languages...</p>}
-                    {languagesError && <p className="text-xs text-red-500">{languagesError}</p>}
-                    {languages.length > 0 ? (
-                      <>
-                        <div className="w-full h-3 rounded-full overflow-hidden border border-gray-200">
-                          <div className="flex w-full h-full">
-                            {languages.map((l) => (
-                              <div
-                                key={l.name}
-                                className="h-full"
-                                style={{ width: `${l.percent}%`, backgroundColor: langColor(l.name) }}
-                                title={`${l.name} ${Math.round(l.percent)}%`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {languages.map((l) => (
-                            <span key={l.name} className="inline-flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-full text-xs">
-                              <span
-                                className="inline-block w-2 h-2 rounded-full"
-                                style={{ backgroundColor: langColor(l.name) }}
-                              />
-                              <span className="text-gray-800">{l.name}</span>
-                              <span className="text-gray-500">{Math.round(l.percent)}%</span>
-                            </span>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      // Fallback to primary language tag if languages API returns nothing
-                      repoInfo?.language && (
-                        <div className="mt-2">
-                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
-                            {repoInfo.language}
-                          </span>
-                        </div>
-                      )
+                    {/* Forks */}
+                    {settings.forks === "auto" && repoInfo && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">🔄 {repoInfo.forks_count}</span>
                     )}
                   </div>
-                )}
-              </div>
-            )}
+
+                  {/* NEW: Language bar (all languages) */}
+                  {settings.language === "auto" && (
+                    <div className="mt-3">
+                      {languagesLoading && <p className="text-xs text-gray-500">Loading languages...</p>}
+                      {languagesError && <p className="text-xs text-red-500">{languagesError}</p>}
+                      {languages.length > 0 ? (
+                        <>
+                          <div className="w-full h-3 rounded-full overflow-hidden border border-gray-200">
+                            <div className="flex w-full h-full">
+                              {languages.map((l) => (
+                                <div
+                                  key={l.name}
+                                  className="h-full"
+                                  style={{ width: `${l.percent}%`, backgroundColor: langColor(l.name) }}
+                                  title={`${l.name} ${Math.round(l.percent)}%`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {languages.map((l) => (
+                              <span key={l.name} className="inline-flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-full text-xs">
+                                <span
+                                  className="inline-block w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: langColor(l.name) }}
+                                />
+                                <span className="text-gray-800">{l.name}</span>
+                                <span className="text-gray-500">{Math.round(l.percent)}%</span>
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        // Fallback to primary language tag if languages API returns nothing
+                        repoInfo?.language && (
+                          <div className="mt-2">
+                            <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                              {repoInfo.language}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
             {/* Contributors */}
             {settings.contributors === "auto" && (
@@ -1109,11 +1200,10 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                     <button
                       onClick={handleLike}
                       disabled={likeLoading}
-                      className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
-                        isLiked
+                      className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${isLiked
                           ? "bg-accent hover:bg-primary-hover text-white"
                           : "bg-gray-200 hover:bg-gray-300 text-black"
-                      } disabled:cursor-not-allowed disabled:opacity-70`}
+                        } disabled:cursor-not-allowed disabled:opacity-70`}
                     >
                       {likeLoading ? (
                         <>
@@ -1146,11 +1236,10 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                   <button
                     onClick={handleBookmark}
                     disabled={bookmarkLoading}
-                    className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${
-                      isBookmarked
+                    className={`flex-1 px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2 ${isBookmarked
                         ? "bg-accent hover:bg-primary-hover text-white"
                         : "bg-gray-200 hover:bg-gray-300 text-black"
-                    } disabled:cursor-not-allowed disabled:opacity-70`}
+                      } disabled:cursor-not-allowed disabled:opacity-70`}
                   >
                     {bookmarkLoading ? (
                       <>
@@ -1205,22 +1294,22 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
               </a>
               <Link
                 href={
-                  fromYourProjects 
-                    ? "/yourprojects" 
-                    : fromProfile && username 
-                    ? `/user/${encodeURIComponent(username)}` 
-                    : "/explore"
+                  fromYourProjects
+                    ? "/yourprojects"
+                    : fromProfile && username
+                      ? `/user/${encodeURIComponent(username)}`
+                      : "/explore"
                 }
                 className="w-full bg-gray-200 hover:bg-gray-300 text-black px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                {fromYourProjects 
-                  ? "Back to Your Projects" 
-                  : fromProfile && username 
-                  ? "Back to Profile" 
-                  : "Back to Explore"}
+                {fromYourProjects
+                  ? "Back to Your Projects"
+                  : fromProfile && username
+                    ? "Back to Profile"
+                    : "Back to Explore"}
               </Link>
             </div>
           </div>

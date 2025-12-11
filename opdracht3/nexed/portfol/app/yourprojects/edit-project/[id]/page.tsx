@@ -21,6 +21,8 @@ interface Project {
   platforms: string[];
   image?: string;
   images?: string[];
+  video?: string;
+  videos?: string[];
   githubDisplaySettings?: GitHubDisplaySettings;
   userId?: {
     _id?: string;
@@ -54,10 +56,12 @@ export default function EditProject() {
   const [platforms, setPlatforms] = useState<string[]>([]);
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
+  const [mainVideoUrl, setMainVideoUrl] = useState("");
+  const [additionalVideoUrls, setAdditionalVideoUrls] = useState<string[]>([]);
   const [githubDisplaySettings, setGithubDisplaySettings] = useState<GitHubDisplaySettings>(DEFAULT_GITHUB_SETTINGS);
   
   // UI state
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -69,7 +73,67 @@ export default function EditProject() {
   const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const logo = mainImageUrl || null;
-  const images = additionalImageUrls.length > 0 ? additionalImageUrls : [];
+  const mediaItems = (() => {
+    const items: { type: "image" | "video" | "youtube"; url: string; embedUrl?: string; thumbUrl?: string; origin: "mainVideo" | "additionalVideo" | "image"; originIndex?: number }[] = [];
+    const parseYouTube = (url: string) => {
+      try {
+        const u = new URL(url);
+        if (u.hostname.includes("youtube.com")) {
+          const v = u.searchParams.get("v");
+          if (v) return v;
+          const parts = u.pathname.split("/");
+          const idx = parts.findIndex((p) => p === "shorts");
+          if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+        }
+        if (u.hostname === "youtu.be") {
+          const id = u.pathname.replace("/", "");
+          if (id) return id;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    };
+
+    if (mainVideoUrl) {
+      const yt = parseYouTube(mainVideoUrl);
+      if (yt) {
+        items.push({
+          type: "youtube",
+          url: mainVideoUrl,
+          embedUrl: `https://www.youtube.com/embed/${yt}`,
+          thumbUrl: `https://img.youtube.com/vi/${yt}/hqdefault.jpg`,
+          origin: "mainVideo",
+        });
+      } else {
+        items.push({ type: "video", url: mainVideoUrl, origin: "mainVideo" });
+      }
+    }
+
+    if (additionalVideoUrls.length > 0) {
+      additionalVideoUrls.forEach((url, idx) => {
+        const yt = parseYouTube(url);
+        if (yt) {
+          items.push({
+            type: "youtube",
+            url,
+            embedUrl: `https://www.youtube.com/embed/${yt}`,
+            thumbUrl: `https://img.youtube.com/vi/${yt}/hqdefault.jpg`,
+            origin: "additionalVideo",
+            originIndex: idx,
+          });
+        } else {
+          items.push({ type: "video", url, origin: "additionalVideo", originIndex: idx });
+        }
+      });
+    }
+
+    if (additionalImageUrls.length > 0) {
+      items.push(...additionalImageUrls.map((url, idx) => ({ type: "image", url, origin: "image", originIndex: idx })));
+    }
+
+    return items;
+  })();
 
   // Fetch project data
   useEffect(() => {
@@ -110,6 +174,14 @@ export default function EditProject() {
           
           if (projectData.images && projectData.images.length > 0) {
             setAdditionalImageUrls(projectData.images);
+          }
+
+          if (projectData.video) {
+            setMainVideoUrl(projectData.video);
+          }
+
+          if (projectData.videos && projectData.videos.length > 0) {
+            setAdditionalVideoUrls(projectData.videos);
           }
           
           if (projectData.githubDisplaySettings) {
@@ -167,14 +239,14 @@ export default function EditProject() {
 
   // Auto-advance carousel
   useEffect(() => {
-    if (images.length <= 1) return;
+    if (mediaItems.length <= 1) return;
     if (carouselIntervalRef.current) {
       clearInterval(carouselIntervalRef.current);
     }
     const interval = setInterval(() => {
-      setSelectedImageIndex((prevIndex) => {
+      setSelectedMediaIndex((prevIndex) => {
         setSlideDirection("right");
-        return (prevIndex + 1) % images.length;
+        return (prevIndex + 1) % mediaItems.length;
       });
     }, 5000);
     carouselIntervalRef.current = interval;
@@ -183,41 +255,27 @@ export default function EditProject() {
         clearInterval(carouselIntervalRef.current);
       }
     };
-  }, [images.length]);
+  }, [mediaItems.length]);
 
-  const handleImageSelect = (index: number) => {
-    if (index > selectedImageIndex) {
+  const handleMediaSelect = (index: number) => {
+    if (index > selectedMediaIndex) {
       setSlideDirection("right");
-    } else if (index < selectedImageIndex) {
+    } else if (index < selectedMediaIndex) {
       setSlideDirection("left");
     }
-    setSelectedImageIndex(index);
+    setSelectedMediaIndex(index);
     if (carouselIntervalRef.current) {
       clearInterval(carouselIntervalRef.current);
     }
-    if (images.length > 1) {
+    if (mediaItems.length > 1) {
       const interval = setInterval(() => {
-        setSelectedImageIndex((prevIndex) => {
+        setSelectedMediaIndex((prevIndex) => {
           setSlideDirection("right");
-          return (prevIndex + 1) % images.length;
+          return (prevIndex + 1) % mediaItems.length;
         });
       }, 5000);
       carouselIntervalRef.current = interval;
     }
-  };
-
-  const handlePreviousImage = () => {
-    if (images.length <= 1) return;
-    const newIndex = selectedImageIndex === 0 ? images.length - 1 : selectedImageIndex - 1;
-    setSlideDirection("left");
-    handleImageSelect(newIndex);
-  };
-
-  const handleNextImage = () => {
-    if (images.length <= 1) return;
-    const newIndex = (selectedImageIndex + 1) % images.length;
-    setSlideDirection("right");
-    handleImageSelect(newIndex);
   };
 
   const handleProjectTypeChange = useCallback((type: string | null) => {
@@ -241,8 +299,22 @@ export default function EditProject() {
 
   const handleRemoveImage = (index: number) => {
     setAdditionalImageUrls((prev) => prev.filter((_, i) => i !== index));
-    if (selectedImageIndex >= additionalImageUrls.length - 1) {
-      setSelectedImageIndex(Math.max(0, selectedImageIndex - 1));
+    if (selectedMediaIndex >= mediaItems.length - 1) {
+      setSelectedMediaIndex(Math.max(0, selectedMediaIndex - 1));
+    }
+  };
+
+  const handleAddVideo = () => {
+    const url = prompt("Enter video URL (MP4/WebM or YouTube):");
+    if (url && url.trim() && additionalVideoUrls.length < 5) {
+      setAdditionalVideoUrls((prev) => [...prev, url.trim()]);
+    }
+  };
+
+  const handleRemoveVideo = (index: number) => {
+    setAdditionalVideoUrls((prev) => prev.filter((_, i) => i !== index));
+    if (selectedMediaIndex >= mediaItems.length - 1) {
+      setSelectedMediaIndex(Math.max(0, selectedMediaIndex - 1));
     }
   };
 
@@ -277,6 +349,8 @@ export default function EditProject() {
           platforms: projectType ? [projectType, ...platforms].join(",") : platforms.join(","),
           mainImageUrl: mainImageUrl.trim() || undefined,
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
+          mainVideoUrl: mainVideoUrl.trim() || undefined,
+          additionalVideoUrls: additionalVideoUrls.map(url => url.trim()).filter(url => url),
           githubDisplaySettings,
         }),
       });
@@ -405,28 +479,53 @@ export default function EditProject() {
               {/* Main media player */}
               <div className="bg-white rounded-large shadow-elevated overflow-hidden group relative">
                 <div className="relative w-full bg-gray-200 rounded-large overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
-                  {images.length > 0 ? (
+                  {mediaItems.length > 0 ? (
                     <div className="relative w-full h-full overflow-hidden">
                       <div
                         className="flex transition-transform duration-500 ease-in-out h-full"
                         style={{
-                          transform: `translateX(-${selectedImageIndex * 100}%)`,
+                          transform: `translateX(-${selectedMediaIndex * 100}%)`,
                         }}
                       >
-                        {images.map((img, index) => (
+                        {mediaItems.map((item, index) => (
                           <div
-                            key={`${img}-${index}`}
+                            key={`${item.url}-${index}`}
                             className="relative shrink-0 w-full h-full"
                           >
-                            <Image
-                              src={img}
-                              alt={`${name || project.name} - Image ${index + 1}`}
-                              fill
-                              className={`object-cover transition-transform duration-500 ${index === selectedImageIndex ? "group-hover:scale-105" : ""}`}
-                              priority={index === 0}
-                            />
+                            {item.type === "image" ? (
+                              <Image
+                                src={item.url}
+                                alt={`${name || project.name} - Image ${index + 1}`}
+                                fill
+                                className={`object-cover transition-transform duration-500 ${index === selectedMediaIndex ? "group-hover:scale-105" : ""}`}
+                                priority={index === 0}
+                              />
+                            ) : item.type === "youtube" && item.embedUrl ? (
+                              <iframe
+                                src={item.embedUrl}
+                                title={`${name || project.name} - Video ${index + 1}`}
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                              />
+                            ) : (
+                              <video
+                                src={item.url}
+                                controls
+                                className="w-full h-full object-cover bg-black"
+                              />
+                            )}
                             <button
-                              onClick={() => handleRemoveImage(index)}
+                              onClick={() => {
+                                if (item.origin === "image" && item.originIndex !== undefined) {
+                                  handleRemoveImage(item.originIndex);
+                                } else if (item.origin === "mainVideo") {
+                                  setMainVideoUrl("");
+                                  setSelectedMediaIndex(0);
+                                } else if (item.origin === "additionalVideo" && item.originIndex !== undefined) {
+                                  handleRemoveVideo(item.originIndex);
+                                }
+                              }}
                               className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg z-10"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -436,21 +535,21 @@ export default function EditProject() {
                           </div>
                         ))}
                       </div>
-                      {images.length > 1 && (
+                      {mediaItems.length > 1 && (
                         <>
                           <button
-                            onClick={handlePreviousImage}
+                            onClick={() => handleMediaSelect(selectedMediaIndex === 0 ? mediaItems.length - 1 : selectedMediaIndex - 1)}
                             className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg text-gray-700 p-3 rounded-full z-10 transition-all hover:scale-110"
-                            aria-label="Previous image"
+                            aria-label="Previous media"
                           >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                           </button>
                           <button
-                            onClick={handleNextImage}
+                            onClick={() => handleMediaSelect((selectedMediaIndex + 1) % mediaItems.length)}
                             className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-lg text-gray-700 p-3 rounded-full z-10 transition-all hover:scale-110"
-                            aria-label="Next image"
+                            aria-label="Next media"
                           >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -458,7 +557,7 @@ export default function EditProject() {
                           </button>
                         </>
                       )}
-                      {/* Image editing buttons at bottom right */}
+                      {/* Media editing buttons at bottom right */}
                       <div className="absolute bottom-4 right-4 z-20 flex gap-2">
                         <button
                           onClick={handleAddImage}
@@ -466,18 +565,29 @@ export default function EditProject() {
                         >
                           + Add Image
                         </button>
+                        <button
+                          onClick={handleAddVideo}
+                          className="bg-gray-800 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-700 transition-colors shadow-lg"
+                        >
+                          + Add Video
+                        </button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-gray-200 relative">
-                      <span className="text-gray-500">No image available</span>
-                      {/* Image editing buttons at bottom right */}
-                      <div className="absolute bottom-4 right-4 z-20">
+                      <span className="text-gray-500">No media available</span>
+                      <div className="absolute bottom-4 right-4 z-20 flex gap-2">
                         <button
                           onClick={handleAddImage}
                           className="bg-accent text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-primary-hover transition-colors shadow-lg"
                         >
                           + Add Image
+                        </button>
+                        <button
+                          onClick={handleAddVideo}
+                          className="bg-gray-800 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-700 transition-colors shadow-lg"
+                        >
+                          + Add Video
                         </button>
                       </div>
                     </div>
@@ -486,35 +596,64 @@ export default function EditProject() {
               </div>
 
               {/* Thumbnail strip */}
-              {images.length > 0 && (
+              {mediaItems.length > 0 && (
                 <div className="relative bg-white rounded-large p-4 shadow-elevated">
                   <div
                     ref={thumbnailScrollRef}
                     className="flex gap-2 overflow-x-auto scrollbar-hide"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
-                    {images.map((img, index) => (
+                    {mediaItems.map((item, index) => (
                       <div
                         key={index}
                         className={`relative shrink-0 w-32 h-20 rounded-base overflow-hidden border-2 transition-all group ${
-                          selectedImageIndex === index
+                          selectedMediaIndex === index
                             ? "border-accent"
                             : "border-gray-300 hover:border-gray-400"
                         }`}
                       >
                         <button
-                          onClick={() => handleImageSelect(index)}
+                          onClick={() => handleMediaSelect(index)}
                           className="relative w-full h-full"
                         >
-                          <Image
-                            src={img}
-                            alt={`Thumbnail ${index + 1}`}
-                            fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-110"
-                          />
+                          {item.type === "image" ? (
+                            <Image
+                              src={item.url}
+                              alt={`Thumbnail ${index + 1}`}
+                              fill
+                              className="object-cover transition-transform duration-300 group-hover:scale-110"
+                            />
+                          ) : item.type === "youtube" && item.thumbUrl ? (
+                            <div className="w-full h-full relative">
+                              <Image
+                                src={item.thumbUrl}
+                                alt={`Thumbnail ${index + 1}`}
+                                fill
+                                className="object-cover transition-transform duration-300 group-hover:scale-110"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="bg-black/60 text-white rounded-full p-2">
+                                  ▶
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full bg-black flex items-center justify-center text-white text-sm">
+                              Video {index + 1}
+                            </div>
+                          )}
                         </button>
                         <button
-                          onClick={() => handleRemoveImage(index)}
+                          onClick={() => {
+                            if (item.origin === "image" && item.originIndex !== undefined) {
+                              handleRemoveImage(item.originIndex);
+                            } else if (item.origin === "mainVideo") {
+                              setMainVideoUrl("");
+                              setSelectedMediaIndex(0);
+                            } else if (item.origin === "additionalVideo" && item.originIndex !== undefined) {
+                              handleRemoveVideo(item.originIndex);
+                            }
+                          }}
                           className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors shadow-lg z-10 opacity-0 group-hover:opacity-100"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,6 +692,50 @@ export default function EditProject() {
                     placeholder="Logo URL (optional)"
                     className="w-full px-3 py-2 border-2 border-accent rounded-base text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20"
                   />
+                </div>
+
+                {/* Main Video & Additional Videos */}
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs uppercase text-gray-600 font-semibold">Main Video URL (optional)</label>
+                    <input
+                      type="url"
+                      value={mainVideoUrl}
+                      onChange={(e) => setMainVideoUrl(e.target.value)}
+                      placeholder="https://youtu.be/... or https://example.com/video.mp4"
+                      className="mt-1 w-full px-3 py-2 border-2 border-gray-200 rounded-base text-sm text-black focus:outline-none focus:ring-2 focus:ring-accent/20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs uppercase text-gray-600 font-semibold">Additional Videos</label>
+                      <button
+                        type="button"
+                        onClick={handleAddVideo}
+                        className="px-3 py-1 bg-gray-900 text-white rounded-full text-xs font-semibold hover:bg-gray-700 transition-colors"
+                      >
+                        + Add Video
+                      </button>
+                    </div>
+                    {additionalVideoUrls.length === 0 ? (
+                      <p className="text-xs text-gray-500">No videos added yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {additionalVideoUrls.map((url, idx) => (
+                          <div key={url + idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded-base border">
+                            <span className="text-xs text-gray-700 truncate flex-1">{url}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVideo(idx)}
+                              className="px-2 py-1 text-xs bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Title - Always Editable */}

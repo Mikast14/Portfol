@@ -25,6 +25,10 @@ export default function AddProject() {
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
+  const [mainVideoUrl, setMainVideoUrl] = useState("");
+  const [mainVideoPreview, setMainVideoPreview] = useState<string | null>(null);
+  const [additionalVideoUrls, setAdditionalVideoUrls] = useState<string[]>([]);
+  const [additionalVideoPreviews, setAdditionalVideoPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
@@ -99,6 +103,20 @@ export default function AddProject() {
     setAdditionalImagePreviews(additionalImageUrls);
   }, [additionalImageUrls]);
 
+  // Update preview when main video URL changes
+  useEffect(() => {
+    if (mainVideoUrl.trim()) {
+      setMainVideoPreview(mainVideoUrl);
+    } else {
+      setMainVideoPreview(null);
+    }
+  }, [mainVideoUrl]);
+
+  // Update previews when additional video URLs change
+  useEffect(() => {
+    setAdditionalVideoPreviews(additionalVideoUrls);
+  }, [additionalVideoUrls]);
+
   const handleMainImageUrlChange = useCallback((url: string) => {
     setMainImageUrl(url);
   }, []);
@@ -117,6 +135,26 @@ export default function AddProject() {
 
   const handleRemoveAdditionalImage = useCallback((index: number) => {
     setAdditionalImageUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleMainVideoUrlChange = useCallback((url: string) => {
+    setMainVideoUrl(url);
+  }, []);
+
+  const handleRemoveMainVideo = useCallback(() => {
+    setMainVideoUrl("");
+    setMainVideoPreview(null);
+  }, []);
+
+  const handleAdditionalVideoUrlAdd = useCallback((url: string) => {
+    const maxAdditionalVideos = 5;
+    if (additionalVideoUrls.length < maxAdditionalVideos) {
+      setAdditionalVideoUrls((prev) => [...prev, url]);
+    }
+  }, [additionalVideoUrls.length]);
+
+  const handleRemoveAdditionalVideo = useCallback((index: number) => {
+    setAdditionalVideoUrls((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleSubmit = async (event: FormEvent) => {
@@ -154,6 +192,8 @@ export default function AddProject() {
           platforms: platformsToSubmit.join(","),
           mainImageUrl: mainImageUrl.trim() || undefined,
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
+          mainVideoUrl: mainVideoUrl.trim() || undefined,
+          additionalVideoUrls: additionalVideoUrls.map(url => url.trim()).filter(url => url),
           githubDisplaySettings,
         }),
       });
@@ -227,11 +267,19 @@ export default function AddProject() {
               mainImagePreview={mainImagePreview}
               additionalImageUrls={additionalImageUrls}
               additionalImagePreviews={additionalImagePreviews}
+            mainVideoUrl={mainVideoUrl}
+            mainVideoPreview={mainVideoPreview}
+            additionalVideoUrls={additionalVideoUrls}
+            additionalVideoPreviews={additionalVideoPreviews}
               loading={loading}
               onMainImageUrlChange={handleMainImageUrlChange}
               onAdditionalImageUrlAdd={handleAdditionalImageUrlAdd}
               onRemoveMainImage={handleRemoveMainImage}
               onRemoveAdditionalImage={handleRemoveAdditionalImage}
+            onMainVideoUrlChange={handleMainVideoUrlChange}
+            onAdditionalVideoUrlAdd={handleAdditionalVideoUrlAdd}
+            onRemoveMainVideo={handleRemoveMainVideo}
+            onRemoveAdditionalVideo={handleRemoveAdditionalVideo}
             />
 
             <GitHubDisplaySettingsSection

@@ -39,7 +39,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("JSON body parsed successfully");
     
-    const { name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [], githubDisplaySettings = {} } = body;
+    const {
+      name,
+      description,
+      githubRepo,
+      platforms: platformsString,
+      mainImageUrl,
+      additionalImageUrls = [],
+      mainVideoUrl,
+      additionalVideoUrls = [],
+      githubDisplaySettings = {},
+    } = body;
 
     // Validate required fields (logo is now optional)
     if (!name || !description || !githubRepo || !platformsString) {
@@ -73,6 +83,30 @@ export async function POST(request: Request) {
       }
     }
 
+    // Validate main video URL format (if provided)
+    if (mainVideoUrl) {
+      try {
+        new URL(mainVideoUrl);
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: "Main video URL is not a valid URL" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate additional video URLs
+    for (const url of additionalVideoUrls) {
+      try {
+        new URL(url);
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: `Invalid additional video URL: ${url}` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Parse platforms (comma-separated string to array)
     const platforms = platformsString.split(",").map((p: string) => p.trim().toLowerCase());
 
@@ -90,10 +124,14 @@ export async function POST(request: Request) {
     // Logo is stored separately in image field, subimages go in images array
     const logoUrl = mainImageUrl || undefined;
     const subImagePaths: string[] = additionalImageUrls.filter((url: string) => url.trim());
+    const mainVideo = mainVideoUrl || undefined;
+    const subVideoUrls: string[] = additionalVideoUrls.filter((url: string) => url.trim());
 
-    console.log(`Saving project with logo URL and ${subImagePaths.length} subimage URLs`);
+    console.log(`Saving project with logo URL and ${subImagePaths.length} subimage URLs and ${subVideoUrls.length} video URLs`);
     console.log(`Logo URL: ${logoUrl || 'none'}`);
     console.log(`Subimage URLs:`, JSON.stringify(subImagePaths));
+    console.log(`Main video: ${mainVideo || 'none'}`);
+    console.log(`Additional videos:`, JSON.stringify(subVideoUrls));
 
     // Create project with image URLs and GitHub display settings
     const project = new Project({
@@ -103,6 +141,8 @@ export async function POST(request: Request) {
       platforms,
       image: logoUrl, // Logo (optional)
       images: subImagePaths, // Only subimages (not including logo)
+      video: mainVideo,
+      videos: subVideoUrls,
       userId: userId, // Associate project with the logged-in user
       githubDisplaySettings: {
         activeStatus: githubDisplaySettings.activeStatus || "auto",
@@ -116,10 +156,10 @@ export async function POST(request: Request) {
     // Save the project
     await project.save();
     
-    // Explicitly update the images field using updateOne to ensure it's saved
+    // Explicitly update the media fields using updateOne to ensure it's saved
     await Project.updateOne(
       { _id: project._id },
-      { $set: { images: subImagePaths } }
+      { $set: { images: subImagePaths, videos: subVideoUrls, video: mainVideo } }
     );
     
     // Fetch the project again to verify what was actually saved
@@ -164,7 +204,18 @@ export async function PUT(request: Request) {
     const body = await request.json();
     console.log("JSON body parsed successfully");
     
-    const { id, name, description, githubRepo, platforms: platformsString, mainImageUrl, additionalImageUrls = [], githubDisplaySettings = {} } = body;
+    const {
+      id,
+      name,
+      description,
+      githubRepo,
+      platforms: platformsString,
+      mainImageUrl,
+      additionalImageUrls = [],
+      mainVideoUrl,
+      additionalVideoUrls = [],
+      githubDisplaySettings = {},
+    } = body;
 
     // Validate required fields (logo is now optional)
     if (!id || !name || !description || !githubRepo || !platformsString) {
@@ -215,6 +266,30 @@ export async function PUT(request: Request) {
       }
     }
 
+    // Validate main video URL format (if provided)
+    if (mainVideoUrl) {
+      try {
+        new URL(mainVideoUrl);
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: "Main video URL is not a valid URL" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate additional video URLs
+    for (const url of additionalVideoUrls) {
+      try {
+        new URL(url);
+      } catch {
+        return NextResponse.json(
+          { ok: false, error: `Invalid additional video URL: ${url}` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Parse platforms
     const platforms = platformsString.split(",").map((p: string) => p.trim().toLowerCase());
 
@@ -232,10 +307,16 @@ export async function PUT(request: Request) {
     // Logo is stored separately in image field, subimages go in images array
     const logoUrl = mainImageUrl || undefined;
     const subImagePaths: string[] = additionalImageUrls.filter((url: string) => url.trim());
+    const mainVideo = mainVideoUrl || undefined;
+    const subVideoUrls: string[] = additionalVideoUrls.filter((url: string) => url.trim());
 
-    console.log(`Updating project with logo URL and ${subImagePaths.length} subimage URLs`);
+    console.log(
+      `Updating project with logo URL and ${subImagePaths.length} subimage URLs and ${subVideoUrls.length} video URLs`
+    );
     console.log(`Logo URL: ${logoUrl || 'none'}`);
     console.log(`Subimage URLs:`, JSON.stringify(subImagePaths));
+    console.log(`Main video: ${mainVideo || 'none'}`);
+    console.log(`Additional videos:`, JSON.stringify(subVideoUrls));
 
     // Update the project
     project.name = name;
@@ -244,6 +325,8 @@ export async function PUT(request: Request) {
     project.platforms = platforms;
     project.image = logoUrl; // Logo (optional)
     project.images = subImagePaths; // Only subimages (not including logo)
+    project.video = mainVideo;
+    project.videos = subVideoUrls;
     project.githubDisplaySettings = {
       activeStatus: githubDisplaySettings.activeStatus || project.githubDisplaySettings?.activeStatus || "auto",
       contributors: githubDisplaySettings.contributors || project.githubDisplaySettings?.contributors || "auto",
