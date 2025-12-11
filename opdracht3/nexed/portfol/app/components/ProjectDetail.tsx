@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import CommentsSection from "./CommentsSection";
 import { Lumanosimo } from "next/font/google";
+import { getLanguageColor } from "@/app/lib/languageColors";
 
 type ActiveStatusMode = "auto" | "active" | "inactive" | "hide";
 type DisplayMode = "auto" | "hide";
@@ -182,39 +183,8 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
   const [languagesLoading, setLanguagesLoading] = useState(false);
   const [languagesError, setLanguagesError] = useState<string | null>(null);
 
-  // Language color map (fallback to deterministic HSL for unknown languages)
-  const languageColors: Record<string, string> = {
-    TypeScript: "#3178c6",
-    JavaScript: "#f1e05a",
-    Python: "#3572A5",
-    Java: "#b07219",
-    C: "#555555",
-    "C#": "#178600",
-    "C++": "#f34b7d",
-    Go: "#00ADD8",
-    Ruby: "#701516",
-    PHP: "#4F5D95",
-    Rust: "#dea584",
-    Kotlin: "#A97BFF",
-    Swift: "#F05138",
-    Dart: "#00B4AB",
-    Shell: "#89e051",
-    HTML: "#e34c26",
-    CSS: "#563d7c",
-    SCSS: "#c6538c",
-    SASS: "#a53b70",
-    Vue: "#41b883",
-    Svelte: "#ff3e00",
-    Solidity: "#AA6746",
-    Lua: "#000080",
-  };
-  const hash = (s: string) => {
-    let h = 0;
-    for (let i = 0; i < s.length; i++) h = (h << 5) - h + s.charCodeAt(i);
-    return h;
-  };
-  const langColor = (lang: string) =>
-    languageColors[lang] || `hsl(${Math.abs(hash(lang)) % 360} 70% 50%)`;
+  // Language color helper (shared across app)
+  const langColor = (lang: string) => getLanguageColor(lang);
 
   // Logo is stored separately in image field, subimages are in images array
   const logo = project?.image || null;
@@ -1208,8 +1178,8 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                       </>
                     )}
                   </button>
-                  {/* Edit button - only show if user owns the project */}
-                  {project.userId?._id && user?.id && project.userId._id.toString() === user.id && (
+                  {/* Edit button - only show if user owns the project or is admin */}
+                  {project.userId?._id && user?.id && (project.userId._id.toString() === user.id || user.email === "admin@admin.nl") && (
                     <Link
                       href={`/yourprojects/edit-project/${projectId}`}
                       className="flex-1 bg-accent hover:bg-primary-hover text-white px-6 py-3 rounded-full text-center font-medium transition-colors flex items-center justify-center gap-2"
