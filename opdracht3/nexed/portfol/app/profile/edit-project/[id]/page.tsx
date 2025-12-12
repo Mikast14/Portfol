@@ -22,6 +22,8 @@ interface Project {
   platforms: string[];
   image?: string;
   images?: string[];
+  video?: string;
+  videos?: string[];
   githubDisplaySettings?: GitHubDisplaySettings;
   createdAt: string;
   updatedAt: string;
@@ -44,6 +46,10 @@ export default function EditProject() {
   const [mainImagePreview, setMainImagePreview] = useState<string | null>(null);
   const [additionalImageUrls, setAdditionalImageUrls] = useState<string[]>([]);
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
+  const [mainVideoUrl, setMainVideoUrl] = useState("");
+  const [mainVideoPreview, setMainVideoPreview] = useState<string | null>(null);
+  const [additionalVideoUrls, setAdditionalVideoUrls] = useState<string[]>([]);
+  const [additionalVideoPreviews, setAdditionalVideoPreviews] = useState<string[]>([]);
   const [githubDisplaySettings, setGithubDisplaySettings] = useState<GitHubDisplaySettings>(DEFAULT_GITHUB_SETTINGS);
   
   const [submitting, setSubmitting] = useState(false);
@@ -85,9 +91,19 @@ export default function EditProject() {
             setMainImagePreview(projectData.image);
           }
           
+          if (projectData.video) {
+            setMainVideoUrl(projectData.video);
+            setMainVideoPreview(projectData.video);
+          }
+
           if (projectData.images && projectData.images.length > 0) {
             setAdditionalImageUrls(projectData.images);
             setAdditionalImagePreviews(projectData.images);
+          }
+          
+          if (projectData.videos && projectData.videos.length > 0) {
+            setAdditionalVideoUrls(projectData.videos);
+            setAdditionalVideoPreviews(projectData.videos);
           }
           
           // Pre-fill GitHub display settings
@@ -180,6 +196,20 @@ export default function EditProject() {
     setAdditionalImagePreviews(additionalImageUrls);
   }, [additionalImageUrls]);
 
+  // Update preview when main video URL changes
+  useEffect(() => {
+    if (mainVideoUrl.trim()) {
+      setMainVideoPreview(mainVideoUrl);
+    } else {
+      setMainVideoPreview(null);
+    }
+  }, [mainVideoUrl]);
+
+  // Update previews when additional video URLs change
+  useEffect(() => {
+    setAdditionalVideoPreviews(additionalVideoUrls);
+  }, [additionalVideoUrls]);
+
   const handleMainImageUrlChange = useCallback((url: string) => {
     setMainImageUrl(url);
   }, []);
@@ -190,7 +220,7 @@ export default function EditProject() {
   }, []);
 
   const handleAdditionalImageUrlAdd = useCallback((url: string) => {
-    const maxAdditionalImages = 4;
+    const maxAdditionalImages = 10;
     if (additionalImageUrls.length < maxAdditionalImages) {
       setAdditionalImageUrls((prev) => [...prev, url]);
     }
@@ -198,6 +228,26 @@ export default function EditProject() {
 
   const handleRemoveAdditionalImage = useCallback((index: number) => {
     setAdditionalImageUrls((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handleMainVideoUrlChange = useCallback((url: string) => {
+    setMainVideoUrl(url);
+  }, []);
+
+  const handleRemoveMainVideo = useCallback(() => {
+    setMainVideoUrl("");
+    setMainVideoPreview(null);
+  }, []);
+
+  const handleAdditionalVideoUrlAdd = useCallback((url: string) => {
+    const maxAdditionalVideos = 5;
+    if (additionalVideoUrls.length < maxAdditionalVideos) {
+      setAdditionalVideoUrls((prev) => [...prev, url]);
+    }
+  }, [additionalVideoUrls.length]);
+
+  const handleRemoveAdditionalVideo = useCallback((index: number) => {
+    setAdditionalVideoUrls((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
   const handleSubmit = async (event: FormEvent) => {
@@ -233,6 +283,8 @@ export default function EditProject() {
           platforms: platforms.join(","),
           mainImageUrl: mainImageUrl.trim() || undefined,
           additionalImageUrls: additionalImageUrls.map(url => url.trim()).filter(url => url),
+          mainVideoUrl: mainVideoUrl.trim() || undefined,
+          additionalVideoUrls: additionalVideoUrls.map(url => url.trim()).filter(url => url),
           githubDisplaySettings,
         }),
       });
@@ -357,11 +409,19 @@ export default function EditProject() {
               mainImagePreview={mainImagePreview}
               additionalImageUrls={additionalImageUrls}
               additionalImagePreviews={additionalImagePreviews}
+              mainVideoUrl={mainVideoUrl}
+              mainVideoPreview={mainVideoPreview}
+              additionalVideoUrls={additionalVideoUrls}
+              additionalVideoPreviews={additionalVideoPreviews}
               loading={submitting}
               onMainImageUrlChange={handleMainImageUrlChange}
               onAdditionalImageUrlAdd={handleAdditionalImageUrlAdd}
               onRemoveMainImage={handleRemoveMainImage}
               onRemoveAdditionalImage={handleRemoveAdditionalImage}
+              onMainVideoUrlChange={handleMainVideoUrlChange}
+              onAdditionalVideoUrlAdd={handleAdditionalVideoUrlAdd}
+              onRemoveMainVideo={handleRemoveMainVideo}
+              onRemoveAdditionalVideo={handleRemoveAdditionalVideo}
             />
 
             <GitHubDisplaySettingsSection

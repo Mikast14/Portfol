@@ -11,6 +11,8 @@ type ProjectItem = {
   description?: string;
   image?: string;
   images?: string[];
+  video?: string;
+  videos?: string[];
   platforms?: string[];
   userId?: {
     username?: string;
@@ -48,17 +50,39 @@ export default function ProjectCard({
   const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const { isAuthenticated, user } = useAuth();
-  // Allow admin to edit/delete any project, or if explicitly set, or if in profile mode
-  const isAdmin = user?.email === "admin@admin.nl";
-  const canEdit = showEditButton ?? (mode === "profile" || (isAdmin && isAuthenticated));
-  const canDelete = showDeleteButton ?? (mode === "profile" || (isAdmin && isAuthenticated));
+  const canEdit = showEditButton ?? mode === "profile";
+  const canDelete = showDeleteButton ?? mode === "profile";
   const showBookmark = mode === "explore" && isAuthenticated;
   const showLike = mode === "explore" && isAuthenticated && project.userId?._id !== user?.id;
 
-  // Use first image from images array, or fall back to main image
-  const displayImage = project.images && project.images.length > 0 
-    ? project.images[0] 
-    : project.image;
+  const parseYouTube = (url?: string) => {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes("youtube.com")) {
+        const v = u.searchParams.get("v");
+        if (v) return v;
+        const parts = u.pathname.split("/");
+        const idx = parts.findIndex((p) => p === "shorts");
+        if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+      }
+      if (u.hostname === "youtu.be") {
+        const id = u.pathname.replace("/", "");
+        if (id) return id;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const firstImage = project.images && project.images.length > 0 ? project.images[0] : project.image;
+  const firstVideo = project.videos && project.videos.length > 0 ? project.videos[0] : project.video;
+  const ytId = parseYouTube(firstVideo || undefined);
+  const youtubeThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+  const displayMedia = firstImage || youtubeThumb || firstVideo;
+  const displayIsVideo = !!firstVideo && !firstImage;
+  const displayIsYouTube = !!youtubeThumb && !firstImage;
 
   // Check if project is bookmarked
   useEffect(() => {
@@ -235,18 +259,47 @@ export default function ProjectCard({
       <div className="relative rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
         {/* Image Container */}
         <div className="relative w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-          {displayImage && !imageError ? (
+          {displayMedia && !imageError ? (
             <div className="relative w-full">
-              <Image
-                src={displayImage}
-                alt={project.name}
-                width={800}
-                height={600}
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                onError={() => setImageError(true)}
-                loading="lazy"
-                style={{ maxWidth: '100%', height: 'auto' }}
-              />
+              {displayIsVideo ? (
+                displayIsYouTube ? (
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={displayMedia}
+                      alt={project.name}
+                      width={800}
+                      height={600}
+                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={() => setImageError(true)}
+                      loading="lazy"
+                      style={{ maxWidth: "100%", height: "auto" }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-black/60 text-white rounded-full p-3">
+                        ▶
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <video
+                    src={displayMedia}
+                    controls
+                    className="w-full h-full object-cover"
+                    style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                )
+              ) : (
+                <Image
+                  src={displayMedia}
+                  alt={project.name}
+                  width={800}
+                  height={600}
+                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                  onError={() => setImageError(true)}
+                  loading="lazy"
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                />
+              )}
             </div>
           ) : (
             <div className="flex h-64 w-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100">
