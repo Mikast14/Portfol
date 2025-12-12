@@ -150,3 +150,134 @@ export async function POST(request: Request) {
   }
 }
 
+// PUT - Edit a message
+export async function PUT(request: Request) {
+  try {
+    const userId = getCurrentUserId(request);
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    await connectDB();
+
+    const body = await request.json();
+    const { messageId, content } = body;
+
+    if (!messageId) {
+      return NextResponse.json(
+        { ok: false, error: "messageId is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!content || !content.trim()) {
+      return NextResponse.json(
+        { ok: false, error: "content is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find the message
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return NextResponse.json(
+        { ok: false, error: "Message not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if the message belongs to the current user
+    if (message.senderId.toString() !== userId) {
+      return NextResponse.json(
+        { ok: false, error: "You can only edit your own messages" },
+        { status: 403 }
+      );
+    }
+
+    // Update the message (only text messages can be edited, not project shares)
+    if (message.projectId) {
+      return NextResponse.json(
+        { ok: false, error: "Project shares cannot be edited" },
+        { status: 400 }
+      );
+    }
+
+    message.content = content.trim();
+    await message.save();
+
+    // Populate the message before returning
+    await message.populate("senderId", "username profileImage email");
+    await message.populate("receiverId", "username profileImage email");
+
+    return NextResponse.json(
+      { ok: true, data: message },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error editing message:", error);
+    return NextResponse.json(
+      { ok: false, error: "Error editing message" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete a message
+export async function DELETE(request: Request) {
+  try {
+    const userId = getCurrentUserId(request);
+    if (!userId) {
+      return NextResponse.json(
+        { ok: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const messageId = searchParams.get("messageId");
+
+    if (!messageId) {
+      return NextResponse.json(
+        { ok: false, error: "messageId parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    // Find the message
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return NextResponse.json(
+        { ok: false, error: "Message not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if the message belongs to the current user
+    if (message.senderId.toString() !== userId) {
+      return NextResponse.json(
+        { ok: false, error: "You can only delete your own messages" },
+        { status: 403 }
+      );
+    }
+
+    // Delete the message
+    await Message.findByIdAndDelete(messageId);
+
+    return NextResponse.json(
+      { ok: true, message: "Message deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting message:", error);
+    return NextResponse.json(
+      { ok: false, error: "Error deleting message" },
+      { status: 500 }
+    );
+  }
+}
+
