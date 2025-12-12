@@ -26,6 +26,18 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: false,
         },
+        followers: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+        ],
+        following: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+        ],
     },
     {
         timestamps: true, // Automatically adds createdAt and updatedAt

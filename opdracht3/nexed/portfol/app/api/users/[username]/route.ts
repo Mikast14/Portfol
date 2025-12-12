@@ -2,9 +2,21 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Project from "@/models/Project";
+import { verifyToken } from "@/lib/jwt";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
+
+function getCurrentUserId(request: Request): string | null {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authHeader.substring(7);
+  const decoded = verifyToken(token);
+  return decoded ? decoded.userId : null;
+}
 
 export async function GET(
   request: Request,
@@ -12,6 +24,7 @@ export async function GET(
 ) {
   try {
     await connectDB();
+    const currentUserId = getCurrentUserId(request);
 
     // Handle both Promise and direct params (for Next.js 13.4+ compatibility)
     const resolvedParams = params instanceof Promise ? await params : params;
@@ -69,6 +82,13 @@ export async function GET(
       .sort({ createdAt: -1 })
       .select("-githubDisplaySettings");
 
+    const followerCount = Array.isArray(user.followers) ? user.followers.length : 0;
+    const followingCount = Array.isArray(user.following) ? user.following.length : 0;
+    const isOwnProfile = currentUserId ? user._id.toString() === currentUserId : false;
+    const isFollowing = !!currentUserId && Array.isArray(user.followers)
+      ? user.followers.some((followerId: any) => followerId.toString() === currentUserId)
+      : false;
+
     // Return user info and projects
     return NextResponse.json({
       ok: true,
@@ -79,6 +99,10 @@ export async function GET(
           email: user.email, // Include email for now, can be made optional later
           profileImage: user.profileImage || null,
           createdAt: user.createdAt,
+          followerCount,
+          followingCount,
+          isFollowing,
+          isOwnProfile,
         },
         projects: projects,
       },

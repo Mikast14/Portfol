@@ -27,6 +27,10 @@ interface UserProfile {
   email: string;
   profileImage?: string | null;
   createdAt: string;
+  followerCount?: number;
+  followingCount?: number;
+  isFollowing?: boolean;
+  isOwnProfile?: boolean;
 }
 
 interface ProfileData {
@@ -61,6 +65,10 @@ export default function UserProfilePage() {
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [skillsError, setSkillsError] = useState<string | null>(null);
   const [hoveredLanguage, setHoveredLanguage] = useState<string | null>(null);
+  const [isFollowingProfile, setIsFollowingProfile] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [followError, setFollowError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -188,6 +196,68 @@ export default function UserProfilePage() {
     fetchSkills();
   }, [username]);
 
+  useEffect(() => {
+    if (!profileData) return;
+    setIsFollowingProfile(profileData.user.isFollowing ?? false);
+    setFollowerCount(profileData.user.followerCount ?? 0);
+    setFollowError(null);
+  }, [profileData]);
+
+  const handleFollowToggle = async () => {
+    if (!profileData || profileData.user.isOwnProfile) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setFollowLoading(true);
+    setFollowError(null);
+
+    try {
+      const method = isFollowingProfile ? "DELETE" : "POST";
+      const response = await fetch(
+        `/api/users/${encodeURIComponent(profileData.user.username)}/follow`,
+        {
+          method,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || "Failed to update follow status");
+      }
+
+      if (typeof data.isFollowing === "boolean") {
+        setIsFollowingProfile(data.isFollowing);
+      } else {
+        setIsFollowingProfile(!isFollowingProfile);
+      }
+
+      if (typeof data.followerCount === "number") {
+        setFollowerCount(data.followerCount);
+      } else {
+        setFollowerCount((prev) => Math.max(0, prev + (isFollowingProfile ? -1 : 1)));
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update follow status";
+      setFollowError(message);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen font-sans bg-white">
@@ -263,6 +333,8 @@ export default function UserProfilePage() {
   });
 
   const totalPlatforms = new Set(projects.flatMap((p) => p.platforms)).size;
+  const followingCount = user.followingCount ?? 0;
+  const isOwnProfile = user.isOwnProfile ?? false;
   const memberSince = user.createdAt ? new Date(user.createdAt) : null;
 
   return (
@@ -315,6 +387,18 @@ export default function UserProfilePage() {
                           {totalPlatforms === 1 ? "Platform" : "Platforms"}
                         </div>
                       </div>
+                      <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-sm border border-gray-100">
+                        <div className="text-2xl font-bold text-accent">{followerCount}</div>
+                        <div className="text-xs text-gray-700 uppercase tracking-wide font-semibold">
+                          {followerCount === 1 ? "Follower" : "Followers"}
+                        </div>
+                      </div>
+                      <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-sm border border-gray-100">
+                        <div className="text-2xl font-bold text-accent">{followingCount}</div>
+                        <div className="text-xs text-gray-700 uppercase tracking-wide font-semibold">
+                          Following
+                        </div>
+                      </div>
                       {memberSince && (
                         <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 shadow-sm border border-gray-100">
                           <div className="text-2xl font-bold text-accent">
@@ -325,27 +409,62 @@ export default function UserProfilePage() {
                       )}
                     </div>
                   </div>
-                  {/* Message Button - Only show if authenticated and not viewing own profile */}
-                  {isAuthenticated && currentUser && currentUser.id !== user.id && (
-                    <button
-                      onClick={() => router.push(`/chat?userId=${user.id}`)}
-                      className="bg-accent text-white rounded-full px-6 py-3 hover:bg-primary-hover transition-colors font-medium flex items-center gap-2 shrink-0"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                  {!isOwnProfile && (
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                      <button
+                        onClick={handleFollowToggle}
+                        disabled={followLoading}
+                        className={`rounded-full px-6 py-3 font-medium flex items-center justify-center gap-2 border transition-colors shrink-0 ${
+                          isFollowingProfile
+                            ? "bg-white text-accent border-accent hover:bg-accent/10"
+                            : "bg-accent text-white border-accent hover:bg-primary-hover"
+                        } ${followLoading ? "opacity-70 cursor-not-allowed" : ""}`}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                        />
-                      </svg>
-                      Message
-                    </button>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        {followLoading
+                          ? "Updating..."
+                          : isFollowingProfile
+                          ? "Following"
+                          : "Follow"}
+                      </button>
+
+                      {isAuthenticated && currentUser && currentUser.id !== user.id && (
+                        <button
+                          onClick={() => router.push(`/chat?userId=${user.id}`)}
+                          className="bg-accent text-white rounded-full px-6 py-3 hover:bg-primary-hover transition-colors font-medium flex items-center gap-2 shrink-0"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                            />
+                          </svg>
+                          Message
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {followError && !isOwnProfile && (
+                    <p className="text-sm text-red-600 mt-2">{followError}</p>
                   )}
                 </div>
               </div>
