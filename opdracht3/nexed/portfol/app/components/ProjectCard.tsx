@@ -500,63 +500,71 @@ export default function ProjectCard({
           className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300"
         >
           <div className="space-y-3">
-            {/* Title */}
-            <h3 className="text-white font-semibold text-lg line-clamp-2 drop-shadow-lg">
-              {project.name}
-            </h3>
-            
-            {/* Platform Tags with Profile Image and Like Count */}
+            {/* Title + Profile (row on all screens) */}
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-white font-semibold text-lg line-clamp-2 drop-shadow-lg flex-1">
+                {project.name}
+              </h3>
+
+              {/* Profile avatar – always visible */}
+              {project.userId?.profileImage && project.userId?.username && (
+                <Link
+                  href={`/user/${project.userId.username}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-shrink-0 hover:scale-110 transition-transform"
+                >
+                  <Image
+                    src={project.userId.profileImage}
+                    alt={project.userId.username || "Owner"}
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-lg"
+                    loading="lazy"
+                  />
+                </Link>
+              )}
+              {project.userId?.username && !project.userId.profileImage && (
+                <Link
+                  href={`/user/${project.userId.username}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg hover:scale-110 transition-transform"
+                >
+                  <span className="text-xs font-semibold text-white">
+                    {project.userId.username.charAt(0).toUpperCase()}
+                  </span>
+                </Link>
+              )}
+            </div>
+
+            {/* Platform Tags + Likes – desktop only (hidden on mobile) */}
             {project.platforms && project.platforms.length > 0 && (
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-2 items-center">
-                  {project.platforms.slice(0, 3).map((platform) => (
-                    <span
-                      key={platform}
-                      className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30"
-                    >
-                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                    </span>
-                  ))}
-                  {project.platforms.length > 3 && (
-                    <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
-                      +{project.platforms.length - 3}
-                    </span>
-                  )}
-                  {showLike && likesCount > 0 && (
-                    <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30 flex items-center gap-1">
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                      </svg>
-                      {likesCount}
-                    </span>
-                  )}
-                </div>
-                {project.userId?.profileImage && project.userId?.username && (
-                  <Link
-                    href={`/user/${project.userId.username}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-shrink-0 hover:scale-110 transition-transform"
+              <div className="hidden md:flex flex-wrap gap-2 items-center">
+                {project.platforms.slice(0, 3).map((platform) => (
+                  <span
+                    key={platform}
+                    className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30"
                   >
-                    <Image
-                      src={project.userId.profileImage}
-                      alt={project.userId.username || "Owner"}
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-lg"
-                      loading="lazy"
-                    />
-                  </Link>
+                    {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  </span>
+                ))}
+                {project.platforms.length > 3 && (
+                  <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
+                    +{project.platforms.length - 3}
+                  </span>
                 )}
-                {project.userId?.username && !project.userId.profileImage && (
-                  <Link
-                    href={`/user/${project.userId.username}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg hover:scale-110 transition-transform"
-                  >
-                    <span className="text-xs font-semibold text-white">
-                      {project.userId.username.charAt(0).toUpperCase()}
-                    </span>
-                  </Link>
+                {showLike && likesCount > 0 && (
+                  <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30 flex items-center gap-1">
+                    <svg
+                      className="w-3 h-3"
+                      viewBox="0 0 24 24"
+                      fill={isLiked ? "currentColor" : "none"}
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M12 21s-6-4.35-6-10a4 4 0 018 0 4 4 0 018 0c0 5.65-6 10-6 10z" />
+                    </svg>
+                    {likesCount}
+                  </span>
                 )}
               </div>
             )}
