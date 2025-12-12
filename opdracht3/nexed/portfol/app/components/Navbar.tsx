@@ -14,6 +14,7 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSearchHovered, setIsSearchHovered] = useState(false);
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
   const [userSearchResults, setUserSearchResults] = useState<Array<{
     id: string;
     username: string;
@@ -265,19 +266,35 @@ const Navbar = () => {
               ? "left-[56px] max-[350px]:left-1/2 max-[350px]:transform max-[350px]:-translate-x-1/2 min-[600px]:left-1/2 min-[600px]:transform min-[600px]:-translate-x-1/2 transform translate-x-0"
               : "left-1/2 transform -translate-x-1/2"
           }`}
+          onMouseEnter={() => setIsLogoHovered(true)}
+          onMouseLeave={() => setIsLogoHovered(false)}
         >
-          <Image
-            src="/logo1portfol.png"
-            alt="Portfol logo"
-            width={140}
-            height={40}
-            className={`w-auto shrink-0 transition-all duration-300 ease-out ${
-              isSearchFocused || searchQuery || isSearchHovered
-                ? "h-6 max-[350px]:h-8 max-[350px]:sm:h-10 min-[600px]:h-8 min-[600px]:sm:h-10"
-                : "h-8 sm:h-10"
-            }`}
-            priority
-          />
+          <div className="relative inline-block">
+            <Image
+              src="/logo1portfol.png"
+              alt="Portfol logo"
+              width={140}
+              height={40}
+              className={`w-auto shrink-0 transition-opacity duration-300 ease-out ${
+                isSearchFocused || searchQuery || isSearchHovered
+                  ? "h-6 max-[350px]:h-8 max-[350px]:sm:h-10 min-[600px]:h-8 min-[600px]:sm:h-10"
+                  : "h-8 sm:h-10"
+              } ${isLogoHovered ? "opacity-0" : "opacity-100"}`}
+              priority
+            />
+            <Image
+              src="/pinklogo.png"
+              alt="Portfol logo"
+              width={140}
+              height={40}
+              className={`w-auto shrink-0 transition-opacity duration-300 ease-out absolute top-0 left-0 ${
+                isSearchFocused || searchQuery || isSearchHovered
+                  ? "h-6 max-[350px]:h-8 max-[350px]:sm:h-10 min-[600px]:h-8 min-[600px]:sm:h-10"
+                  : "h-8 sm:h-10"
+              } ${isLogoHovered ? "opacity-100" : "opacity-0"}`}
+              priority
+            />
+          </div>
         </Link>
 
         {/* Right Side: Search and User/Auth */}
