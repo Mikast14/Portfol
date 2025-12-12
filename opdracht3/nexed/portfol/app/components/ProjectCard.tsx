@@ -44,12 +44,12 @@ export default function ProjectCard({
   deleting = false,
 }: ProjectCardProps) {
   const [imageError, setImageError] = useState(false);
-  const [isTallImage, setIsTallImage] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [isTallImage, setIsTallImage] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const canEdit = showEditButton ?? mode === "profile";
   const canDelete = showDeleteButton ?? mode === "profile";
@@ -258,34 +258,74 @@ export default function ProjectCard({
       }}
     >
       <div className="relative rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-        {/* Image Container */}
+        {/* Image / Video Container */}
         <div
           className="relative w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100"
           style={isTallImage ? { aspectRatio: "16 / 9" } : undefined}
         >
-          {displayImage && !imageError ? (
+          {displayMedia && !imageError ? (
             <div className="relative w-full h-full">
-              <Image
-                src={displayImage}
-                alt={project.name}
-                width={800}
-                height={600}
-                onError={() => setImageError(true)}
-                onLoadingComplete={(img) => {
-                  const aspect = img.naturalWidth / img.naturalHeight;
-                  // mark as "tall" when image is taller than 16:9
-                  setIsTallImage(aspect < 16 / 9);
-                }}
-                className={
-                  isTallImage
-                    ? "w-full h-full object-cover object-top transition-all duration-1700 ease-in-out group-hover:object-bottom"
-                    : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
-                }
-                style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
-                loading="lazy"
-              />
+              {displayIsVideo ? (
+                displayIsYouTube ? (
+                  // YouTube thumbnail (image with play icon)
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={displayMedia}
+                      alt={project.name}
+                      width={800}
+                      height={600}
+                      onError={() => setImageError(true)}
+                      onLoadingComplete={(img) => {
+                        const aspect = img.naturalWidth / img.naturalHeight;
+                        setIsTallImage(aspect < 16 / 9);
+                      }}
+                      className={
+                        isTallImage
+                          ? "w-full h-full object-cover object-top transition-all duration-1000 ease-in-out group-hover:object-bottom"
+                          : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                      }
+                      style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-black/60 text-white rounded-full p-3">
+                        ▶
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  // Real video, keep old behavior
+                  <video
+                    src={displayMedia}
+                    controls
+                    className="w-full h-full object-cover"
+                    style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                )
+              ) : (
+                // Pure image
+                <Image
+                  src={displayMedia}
+                  alt={project.name}
+                  width={800}
+                  height={600}
+                  onError={() => setImageError(true)}
+                  onLoadingComplete={(img) => {
+                    const aspect = img.naturalWidth / img.naturalHeight;
+                    setIsTallImage(aspect < 16 / 9);
+                  }}
+                  className={
+                    isTallImage
+                      ? "w-full h-full object-cover object-top transition-all duration-1000 ease-in-out group-hover:object-bottom"
+                      : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                  }
+                  style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
+                  loading="lazy"
+                />
+              )}
             </div>
           ) : (
+            // Fallback when no media
             <div
               className="flex w-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100"
               style={{ aspectRatio: "16 / 9" }}
