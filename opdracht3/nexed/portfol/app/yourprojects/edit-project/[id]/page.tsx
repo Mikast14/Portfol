@@ -68,6 +68,10 @@ export default function EditProject() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [githubUsername, setGithubUsername] = useState("");
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newVideoUrl, setNewVideoUrl] = useState("");
   
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
   const carouselIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -291,10 +295,20 @@ export default function EditProject() {
   }, []);
 
   const handleAddImage = () => {
-    const url = prompt("Enter image URL:");
-    if (url && url.trim() && additionalImageUrls.length < 10) {
-      setAdditionalImageUrls((prev) => [...prev, url.trim()]);
+    setShowImageModal(true);
+  };
+
+  const handleImageModalSubmit = () => {
+    if (newImageUrl.trim() && additionalImageUrls.length < 10) {
+      setAdditionalImageUrls((prev) => [...prev, newImageUrl.trim()]);
+      setNewImageUrl("");
+      setShowImageModal(false);
     }
+  };
+
+  const handleImageModalCancel = () => {
+    setNewImageUrl("");
+    setShowImageModal(false);
   };
 
   const handleRemoveImage = (index: number) => {
@@ -305,10 +319,20 @@ export default function EditProject() {
   };
 
   const handleAddVideo = () => {
-    const url = prompt("Enter video URL (MP4/WebM or YouTube):");
-    if (url && url.trim() && additionalVideoUrls.length < 5) {
-      setAdditionalVideoUrls((prev) => [...prev, url.trim()]);
+    setShowVideoModal(true);
+  };
+
+  const handleVideoModalSubmit = () => {
+    if (newVideoUrl.trim() && additionalVideoUrls.length < 5) {
+      setAdditionalVideoUrls((prev) => [...prev, newVideoUrl.trim()]);
+      setNewVideoUrl("");
+      setShowVideoModal(false);
     }
+  };
+
+  const handleVideoModalCancel = () => {
+    setNewVideoUrl("");
+    setShowVideoModal(false);
   };
 
   const handleRemoveVideo = (index: number) => {
@@ -929,6 +953,116 @@ export default function EditProject() {
           </div>
         </div>
       </main>
+
+      {/* Add Image Modal */}
+      {showImageModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={handleImageModalCancel}
+        >
+          <div 
+            className="bg-white rounded-large shadow-elevated p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Add Image to Carousel</h2>
+              <p className="text-sm text-gray-600">
+                {additionalImageUrls.length < 10
+                  ? `Enter the URL of the image you want to add (${10 - additionalImageUrls.length} more can be added)`
+                  : "Maximum number of images reached"}
+              </p>
+            </div>
+            <div className="space-y-4">
+              <input
+                type="url"
+                value={newImageUrl}
+                onChange={(e) => setNewImageUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newImageUrl.trim() && additionalImageUrls.length < 10) {
+                    handleImageModalSubmit();
+                  }
+                  if (e.key === "Escape") {
+                    handleImageModalCancel();
+                  }
+                }}
+                placeholder="https://example.com/image.jpg"
+                autoFocus
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-base text-gray-900 placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 bg-white"
+              />
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={handleImageModalCancel}
+                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-base font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImageModalSubmit}
+                  disabled={!newImageUrl.trim() || additionalImageUrls.length >= 10}
+                  className="px-6 py-2 bg-accent hover:bg-primary-hover text-white rounded-base font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add Image
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Video Modal */}
+      {showVideoModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={handleVideoModalCancel}
+        >
+          <div 
+            className="bg-white rounded-large shadow-elevated p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Add Video to Carousel</h2>
+              <p className="text-sm text-gray-600">
+                {additionalVideoUrls.length < 5
+                  ? `Enter the URL of the video you want to add (MP4/WebM or YouTube). ${5 - additionalVideoUrls.length} more can be added`
+                  : "Maximum number of videos reached"}
+              </p>
+            </div>
+            <div className="space-y-4">
+              <input
+                type="url"
+                value={newVideoUrl}
+                onChange={(e) => setNewVideoUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newVideoUrl.trim() && additionalVideoUrls.length < 5) {
+                    handleVideoModalSubmit();
+                  }
+                  if (e.key === "Escape") {
+                    handleVideoModalCancel();
+                  }
+                }}
+                placeholder="https://youtu.be/... or https://example.com/video.mp4"
+                autoFocus
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-base text-gray-900 placeholder-gray-500 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 bg-white"
+              />
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={handleVideoModalCancel}
+                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-base font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleVideoModalSubmit}
+                  disabled={!newVideoUrl.trim() || additionalVideoUrls.length >= 5}
+                  className="px-6 py-2 bg-accent hover:bg-primary-hover text-white rounded-base font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add Video
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
