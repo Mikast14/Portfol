@@ -495,8 +495,10 @@ export default function ProjectCard({
           </div>
         )}
         
-        {/* Title Overlay - Appears on Hover */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        {/* Title Overlay - Appears on Hover (desktop), always visible on mobile */}
+        <div
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300"
+        >
           <div className="space-y-3">
             {/* Title */}
             <h3 className="text-white font-semibold text-lg line-clamp-2 drop-shadow-lg">
