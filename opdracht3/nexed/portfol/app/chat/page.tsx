@@ -222,8 +222,6 @@ export default function ChatPage() {
           // If userId query param exists, select that conversation
           const userIdParam = searchParams.get("userId");
           if (userIdParam) {
-            // Check if conversation exists, if not create it by selecting it
-            const convExists = data.data.some((c: Conversation) => c.userId === userIdParam);
             setSelectedConversation(userIdParam);
             // Remove query param from URL
             router.replace("/chat", { scroll: false });
@@ -640,10 +638,10 @@ export default function ChatPage() {
   const selectedConv = conversations.find((c) => c.userId === selectedConversation);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 md:bg-gray-50">
       <Navbar />
-      <div className="pt-24 md:pt-28 pb-4 md:pb-8 px-2 md:px-4 max-w-7xl mx-auto h-[calc(100vh-80px)] md:h-[calc(100vh-100px)]">
-        <div className="bg-white rounded-xl md:rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
+      <div className="fixed md:relative inset-x-0 top-20 md:top-auto bottom-0 md:bottom-auto pt-0 md:pt-28 pb-0 md:pb-8 px-0 md:px-4 max-w-full md:max-w-7xl mx-auto h-[calc(100vh-80px)] md:h-[calc(100vh-100px)] min-h-0">
+        <div className="bg-white md:bg-white rounded-none md:rounded-2xl shadow-none md:shadow-lg overflow-hidden h-full flex flex-col min-h-0">
           <div className="flex h-full flex-col md:flex-row relative overflow-hidden">
             {/* Conversations List */}
             <div className={`w-full md:w-80 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col md:flex-1 transition-transform duration-300 ease-in-out ${
@@ -721,7 +719,7 @@ export default function ChatPage() {
               {selectedConversation ? (
                 <>
                   {/* Chat Header */}
-                  <div className="p-3 md:p-4 border-b border-gray-200 flex items-center gap-2 md:gap-3 bg-white">
+                  <div className="p-3 md:p-4 border-b border-gray-200 flex items-center gap-2 md:gap-3 bg-white shrink-0">
                     {/* Back Button - Mobile Only */}
                     {isMobile && (
                       <button
@@ -788,7 +786,7 @@ export default function ChatPage() {
                   {/* Messages */}
                   <div
                     ref={messagesContainerRef}
-                    className="flex-1 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4 scrollbar-hide bg-gray-50 min-h-0"
+                    className="flex-1 overflow-y-auto px-3 md:px-6 pt-4 md:pt-6 pb-12 md:pb-16 space-y-4 md:space-y-5 scrollbar-hide bg-gray-50 min-h-0"
                   >
                     {loadingMessages ? (
                       <div className="flex items-center justify-center h-32">
@@ -818,8 +816,31 @@ export default function ChatPage() {
                         return (
                           <div
                             key={message._id}
-                            className={`flex ${isOwn ? "justify-end" : "justify-start"} relative overflow-hidden`}
+                            className={`flex ${isOwn ? "justify-end" : "justify-start"} items-end gap-2 relative overflow-hidden`}
                           >
+                            {/* Avatar for received messages */}
+                            {!isOwn && (
+                              <div className="shrink-0 mb-1">
+                                {message.senderId.profileImage ? (
+                                  <div className="relative w-8 h-8 md:w-9 md:h-9 rounded-full overflow-hidden border-2 border-gray-200">
+                                    <Image
+                                      src={message.senderId.profileImage}
+                                      alt={message.senderId.username}
+                                      width={36}
+                                      height={36}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-200">
+                                    <span className="text-xs md:text-sm font-semibold text-gray-600">
+                                      {message.senderId.username.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {/* Action Buttons - Only appear when swiped */}
                             {canSwipe && (isSwiped || swipeOffset > 40) && (
                               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -889,7 +910,7 @@ export default function ChatPage() {
                               ref={(el) => {
                                 if (el) swipeRefs.current.set(message._id, el);
                               }}
-                              className={`relative max-w-[85%] md:max-w-[70%] lg:max-w-[60%]`}
+                              className={`relative max-w-[85%] md:max-w-[70%] lg:max-w-[60%] ${isOwn ? "order-2" : ""}`}
                               style={{
                                 transform: isMobile ? `translateX(-${swipeOffset}px)` : undefined,
                                 transition: isMobile && !isActivelySwiping ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
@@ -903,15 +924,17 @@ export default function ChatPage() {
                               {/* Message Content */}
                               <div
                                 className={`${
-                                  isOwn ? "bg-accent text-white" : "bg-white text-gray-900"
-                                } rounded-xl md:rounded-2xl px-3 py-2 md:px-4 md:py-2 shadow-sm`}
+                                  isOwn 
+                                    ? "bg-accent text-white shadow-md hover:shadow-lg" 
+                                    : "bg-white text-gray-900 border border-gray-100 shadow-sm hover:shadow-md"
+                                } rounded-2xl md:rounded-3xl px-4 py-2.5 md:px-5 md:py-3 transition-all duration-200`}
                               >
                                 {isEditing ? (
-                                  <div className="space-y-2">
+                                  <div className="space-y-3">
                                     <textarea
                                       value={editMessageContent}
                                       onChange={(e) => setEditMessageContent(e.target.value)}
-                                      className="w-full px-3 py-2 border border-white/30 rounded-lg bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 resize-none"
+                                      className="w-full px-3 py-2 border border-white/30 rounded-lg bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 resize-none text-sm md:text-base"
                                       rows={3}
                                       autoFocus
                                       onKeyDown={(e) => {
@@ -927,24 +950,24 @@ export default function ChatPage() {
                                     <div className="flex gap-2 justify-end">
                                       <button
                                         onClick={handleCancelEdit}
-                                        className="px-3 py-1 text-sm bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                                        className="px-3 py-1.5 text-sm bg-white/20 hover:bg-white/30 rounded-lg transition-colors font-medium"
                                       >
                                         Cancel
                                       </button>
                                       <button
                                         onClick={handleSaveEdit}
                                         disabled={!editMessageContent.trim()}
-                                        className="px-3 py-1 text-sm bg-white text-accent hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-3 py-1.5 text-sm bg-white text-accent hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                                       >
                                         Save
                                       </button>
                                     </div>
                                   </div>
                                 ) : message.projectId ? (
-                                  <div className="space-y-2">
-                                    <div className="flex items-center gap-2 mb-2">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
                                       <svg
-                                        className={`w-4 h-4 ${isOwn ? "text-white" : "text-accent"}`}
+                                        className={`w-4 h-4 ${isOwn ? "text-white/90" : "text-accent"}`}
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -956,7 +979,7 @@ export default function ChatPage() {
                                           d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
                                         />
                                       </svg>
-                                      <span className="text-xs font-semibold opacity-80">
+                                      <span className={`text-xs font-semibold ${isOwn ? "text-white/90" : "text-gray-600"}`}>
                                         Shared a project
                                       </span>
                                     </div>
@@ -964,7 +987,7 @@ export default function ChatPage() {
                                       href={`/explore/project/${message.projectId._id}`}
                                       className="block hover:opacity-90 transition-opacity"
                                     >
-                                      <div className="bg-black/10 rounded-lg p-3 space-y-2">
+                                      <div className={`${isOwn ? "bg-white/10" : "bg-gray-50"} rounded-xl p-3 space-y-2 border ${isOwn ? "border-white/20" : "border-gray-200"}`}>
                                         {message.projectId.image && (
                                           <div className="relative w-full h-32 rounded-lg overflow-hidden">
                                             <Image
@@ -977,11 +1000,11 @@ export default function ChatPage() {
                                           </div>
                                         )}
                                         <div>
-                                          <h4 className="font-semibold text-sm">
+                                          <h4 className={`font-semibold text-sm ${isOwn ? "text-white" : "text-gray-900"}`}>
                                             {message.projectId.name}
                                           </h4>
                                           {message.projectId.description && (
-                                            <p className="text-xs opacity-80 line-clamp-2 mt-1">
+                                            <p className={`text-xs mt-1 line-clamp-2 ${isOwn ? "text-white/80" : "text-gray-600"}`}>
                                               {message.projectId.description}
                                             </p>
                                           )}
@@ -990,12 +1013,12 @@ export default function ChatPage() {
                                     </Link>
                                   </div>
                                 ) : (
-                                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                  <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed break-words">{message.content}</p>
                                 )}
                                 {!isEditing && (
                                   <p
-                                    className={`text-xs mt-1 ${
-                                      isOwn ? "text-white/70" : "text-gray-400"
+                                    className={`text-xs mt-2 ${
+                                      isOwn ? "text-white/75" : "text-gray-500"
                                     }`}
                                   >
                                     {formatTime(message.createdAt)}
@@ -1007,7 +1030,7 @@ export default function ChatPage() {
                         );
                       })
                     )}
-                    <div ref={messagesEndRef} />
+                    <div ref={messagesEndRef} className="h-4" />
                   </div>
 
 
@@ -1290,7 +1313,7 @@ export default function ChatPage() {
                   )}
 
                   {/* Message Input */}
-                  <div className="p-2 md:p-4 border-t border-gray-200 bg-white">
+                  <div className="p-2 md:p-4 border-t border-gray-200 bg-white shrink-0">
                     <div className="flex items-center gap-1.5 md:gap-2">
                       <button
                         onClick={handleOpenProjectSelector}
@@ -1367,7 +1390,7 @@ export default function ChatPage() {
                       />
                     </svg>
                     <p className="text-lg">Select a conversation to start chatting</p>
-                    <p className="text-sm mt-2">Or visit a user's profile to start a new conversation</p>
+                    <p className="text-sm mt-2">Or visit a user&apos;s profile to start a new conversation</p>
                   </div>
                 </div>
               )}
