@@ -30,6 +30,7 @@ export default function PinterestCard({
   onOpen,
 }: PinterestCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [isTallImage, setIsTallImage] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
@@ -217,23 +218,36 @@ export default function PinterestCard({
     >
       <div className="relative rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
         {/* Image Container */}
-        <div className="relative w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+        <div
+          className="relative w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100"
+          style={isTallImage ? { aspectRatio: "16 / 9" } : undefined}
+        >
           {displayImage && !imageError ? (
-            <div className="relative w-full">
-              {/* Use Next.js Image for optimization, but fallback to img for CORS issues */}
+            <div className="relative w-full h-full">
               <Image
                 src={displayImage}
                 alt={project.name}
                 width={800}
                 height={600}
-                className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                 onError={() => setImageError(true)}
+                onLoadingComplete={(img) => {
+                  const aspect = img.naturalWidth / img.naturalHeight;
+                  setIsTallImage(aspect < 16 / 9);
+                }}
+                className={
+                  isTallImage
+                    ? "w-full h-full object-cover object-top transition-all duration-1700 ease-in-out group-hover:object-bottom"
+                    : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                }
+                style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
                 loading="lazy"
-                style={{ maxWidth: '100%', height: 'auto' }}
               />
             </div>
           ) : (
-            <div className="flex h-64 w-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100">
+            <div
+              className="flex w-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100"
+              style={{ aspectRatio: "16 / 9" }}
+            >
               <div className="text-center">
                 <svg
                   className="w-16 h-16 mx-auto text-gray-300 mb-2"

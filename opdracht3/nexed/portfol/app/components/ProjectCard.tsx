@@ -49,6 +49,7 @@ export default function ProjectCard({
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [isTallImage, setIsTallImage] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const canEdit = showEditButton ?? mode === "profile";
   const canDelete = showDeleteButton ?? mode === "profile";
@@ -257,22 +258,34 @@ export default function ProjectCard({
       }}
     >
       <div className="relative rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-        {/* Image Container */}
-        <div className="relative w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+        {/* Image / Video Container */}
+        <div
+          className="relative w-full overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100"
+          style={isTallImage ? { aspectRatio: "16 / 9" } : undefined}
+        >
           {displayMedia && !imageError ? (
-            <div className="relative w-full">
+            <div className="relative w-full h-full">
               {displayIsVideo ? (
                 displayIsYouTube ? (
+                  // YouTube thumbnail (image with play icon)
                   <div className="relative w-full h-full">
                     <Image
                       src={displayMedia}
                       alt={project.name}
                       width={800}
                       height={600}
-                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                       onError={() => setImageError(true)}
+                      onLoadingComplete={(img) => {
+                        const aspect = img.naturalWidth / img.naturalHeight;
+                        setIsTallImage(aspect < 16 / 9);
+                      }}
+                      className={
+                        isTallImage
+                          ? "w-full h-full object-cover object-top transition-all duration-1000 ease-in-out group-hover:object-bottom"
+                          : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                      }
+                      style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
                       loading="lazy"
-                      style={{ maxWidth: "100%", height: "auto" }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="bg-black/60 text-white rounded-full p-3">
@@ -281,6 +294,7 @@ export default function ProjectCard({
                     </div>
                   </div>
                 ) : (
+                  // Real video, keep old behavior
                   <video
                     src={displayMedia}
                     controls
@@ -289,20 +303,33 @@ export default function ProjectCard({
                   />
                 )
               ) : (
+                // Pure image
                 <Image
                   src={displayMedia}
                   alt={project.name}
                   width={800}
                   height={600}
-                  className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                   onError={() => setImageError(true)}
+                  onLoadingComplete={(img) => {
+                    const aspect = img.naturalWidth / img.naturalHeight;
+                    setIsTallImage(aspect < 16 / 9);
+                  }}
+                  className={
+                    isTallImage
+                      ? "w-full h-full object-cover object-top transition-all duration-1000 ease-in-out group-hover:object-bottom"
+                      : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                  }
+                  style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
                   loading="lazy"
-                  style={{ maxWidth: '100%', height: 'auto' }}
                 />
               )}
             </div>
           ) : (
-            <div className="flex h-64 w-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100">
+            // Fallback when no media
+            <div
+              className="flex w-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100"
+              style={{ aspectRatio: "16 / 9" }}
+            >
               <div className="text-center">
                 <svg
                   className="w-16 h-16 mx-auto text-gray-300 mb-2"
@@ -321,181 +348,181 @@ export default function ProjectCard({
               </div>
             </div>
           )}
-          
-          {/* Action Buttons (Like/Bookmark/Edit/Delete) - Top Right */}
-          {(showLike || showBookmark || canEdit || canDelete) && (
-            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-              {showLike && (
-                <button
-                  type="button"
-                  onClick={handleLike}
-                  disabled={likeLoading}
-                  className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/like"
-                  aria-label={isLiked ? "Unlike project" : "Like project"}
-                >
-                  {likeLoading ? (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                  ) : (
-                    <svg
-                      className={`h-4 w-4 transition-colors group-hover/like:text-accent ${isLiked ? "fill-accent text-accent" : ""}`}
-                      viewBox="0 0 24 24"
-                      fill={isLiked ? "currentColor" : "none"}
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                      />
-                    </svg>
-                  )}
-                </button>
-              )}
-              {showBookmark && (
-                <button
-                  type="button"
-                  onClick={handleBookmark}
-                  disabled={bookmarkLoading}
-                  className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/bookmark"
-                  aria-label={isBookmarked ? "Remove bookmark" : "Bookmark project"}
-                >
-                  {bookmarkLoading ? (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                  ) : (
-                    <svg
-                      className={`h-4 w-4 transition-colors group-hover/bookmark:text-accent ${isBookmarked ? "fill-accent text-accent" : ""}`}
-                      viewBox="0 0 24 24"
-                      fill={isBookmarked ? "currentColor" : "none"}
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                      />
-                    </svg>
-                  )}
-                </button>
-              )}
-              {canEdit && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onEdit?.(project._id);
-                  }}
-                  className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 group/edit"
-                  aria-label="Edit project"
-                >
-                  <svg className="h-4 w-4 transition-colors group-hover/edit:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </div>
+
+        {/* Action Buttons (Like/Bookmark/Edit/Delete) - Top Right */}
+        {(showLike || showBookmark || canEdit || canDelete) && (
+          <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+            {showLike && (
+              <button
+                type="button"
+                onClick={handleLike}
+                disabled={likeLoading}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/like"
+                aria-label={isLiked ? "Unlike project" : "Like project"}
+              >
+                {likeLoading ? (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
                   </svg>
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onDelete?.(project._id);
-                  }}
-                  disabled={deleting}
-                  className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/delete"
-                  aria-label="Delete project"
-                >
-                  {deleting ? (
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
-                      <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
-                    </svg>
-                  ) : (
-                    <svg className="h-4 w-4 transition-colors group-hover/delete:text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18" strokeLinecap="round" />
-                      <path d="M8 6v-1a2 2 0 012-2h4a2 2 0 012 2v1" strokeLinecap="round" />
-                      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M10 11v6" strokeLinecap="round" />
-                      <path d="M14 11v6" strokeLinecap="round" />
-                    </svg>
-                  )}
-                </button>
-              )}
-            </div>
-          )}
-          
-          {/* Title Overlay - Appears on Hover */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="space-y-3">
-              {/* Title */}
-              <h3 className="text-white font-semibold text-lg line-clamp-2 drop-shadow-lg">
-                {project.name}
-              </h3>
-              
-              {/* Platform Tags with Profile Image and Like Count */}
-              {project.platforms && project.platforms.length > 0 && (
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {project.platforms.slice(0, 3).map((platform) => (
-                      <span
-                        key={platform}
-                        className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30"
-                      >
-                        {platform.charAt(0).toUpperCase() + platform.slice(1)}
-                      </span>
-                    ))}
-                    {project.platforms.length > 3 && (
-                      <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
-                        +{project.platforms.length - 3}
-                      </span>
-                    )}
-                    {showLike && likesCount > 0 && (
-                      <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30 flex items-center gap-1">
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                        </svg>
-                        {likesCount}
-                      </span>
-                    )}
-                  </div>
-                  {project.userId?.profileImage && project.userId?.username && (
-                    <Link
-                      href={`/user/${project.userId.username}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-shrink-0 hover:scale-110 transition-transform"
+                ) : (
+                  <svg
+                    className={`h-4 w-4 transition-colors group-hover/like:text-accent ${isLiked ? "fill-accent text-accent" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill={isLiked ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
+            {showBookmark && (
+              <button
+                type="button"
+                onClick={handleBookmark}
+                disabled={bookmarkLoading}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/bookmark"
+                aria-label={isBookmarked ? "Remove bookmark" : "Bookmark project"}
+              >
+                {bookmarkLoading ? (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg
+                    className={`h-4 w-4 transition-colors group-hover/bookmark:text-accent ${isBookmarked ? "fill-accent text-accent" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill={isBookmarked ? "currentColor" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit?.(project._id);
+                }}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 group/edit"
+                aria-label="Edit project"
+              >
+                <svg className="h-4 w-4 transition-colors group-hover/edit:text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete?.(project._id);
+                }}
+                disabled={deleting}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-700 shadow-lg transition-all hover:bg-white hover:scale-110 disabled:cursor-not-allowed disabled:opacity-70 group/delete"
+                aria-label="Delete project"
+              >
+                {deleting ? (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+                    <path className="opacity-75" d="M4 12a8 8 0 018-8" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4 transition-colors group-hover/delete:text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 6h18" strokeLinecap="round" />
+                    <path d="M8 6v-1a2 2 0 012-2h4a2 2 0 012 2v1" strokeLinecap="round" />
+                    <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M10 11v6" strokeLinecap="round" />
+                    <path d="M14 11v6" strokeLinecap="round" />
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+        
+        {/* Title Overlay - Appears on Hover */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="space-y-3">
+            {/* Title */}
+            <h3 className="text-white font-semibold text-lg line-clamp-2 drop-shadow-lg">
+              {project.name}
+            </h3>
+            
+            {/* Platform Tags with Profile Image and Like Count */}
+            {project.platforms && project.platforms.length > 0 && (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
+                  {project.platforms.slice(0, 3).map((platform) => (
+                    <span
+                      key={platform}
+                      className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30"
                     >
-                      <Image
-                        src={project.userId.profileImage}
-                        alt={project.userId.username || "Owner"}
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-lg"
-                        loading="lazy"
-                      />
-                    </Link>
+                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    </span>
+                  ))}
+                  {project.platforms.length > 3 && (
+                    <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30">
+                      +{project.platforms.length - 3}
+                    </span>
                   )}
-                  {project.userId?.username && !project.userId.profileImage && (
-                    <Link
-                      href={`/user/${project.userId.username}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg hover:scale-110 transition-transform"
-                    >
-                      <span className="text-xs font-semibold text-white">
-                        {project.userId.username.charAt(0).toUpperCase()}
-                      </span>
-                    </Link>
+                  {showLike && likesCount > 0 && (
+                    <span className="px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium rounded-full border border-white/30 flex items-center gap-1">
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                      </svg>
+                      {likesCount}
+                    </span>
                   )}
                 </div>
-              )}
-            </div>
+                {project.userId?.profileImage && project.userId?.username && (
+                  <Link
+                    href={`/user/${project.userId.username}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-shrink-0 hover:scale-110 transition-transform"
+                  >
+                    <Image
+                      src={project.userId.profileImage}
+                      alt={project.userId.username || "Owner"}
+                      width={32}
+                      height={32}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-lg"
+                      loading="lazy"
+                    />
+                  </Link>
+                )}
+                {project.userId?.username && !project.userId.profileImage && (
+                  <Link
+                    href={`/user/${project.userId.username}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-shrink-0 w-8 h-8 rounded-full bg-accent/90 flex items-center justify-center border-2 border-white/50 shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <span className="text-xs font-semibold text-white">
+                      {project.userId.username.charAt(0).toUpperCase()}
+                    </span>
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
