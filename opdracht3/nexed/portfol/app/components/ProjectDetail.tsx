@@ -8,6 +8,13 @@ import CommentsSection from "./CommentsSection";
 import { Lumanosimo } from "next/font/google";
 import { getLanguageColor } from "@/app/lib/languageColors";
 
+declare global {
+  interface Window {
+    YT?: any;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
 type ActiveStatusMode = "auto" | "active" | "inactive" | "hide";
 type DisplayMode = "auto" | "hide";
 
@@ -204,6 +211,13 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [isMediaPlaying, setIsMediaPlaying] = useState(false);
+  const [youTubeApiReady, setYouTubeApiReady] = useState(false);
+  const [windowOrigin, setWindowOrigin] = useState("");
+  const youtubePlayersRef = useRef<Record<number, any>>({});
+  const youtubeIframeRefs = useRef<Record<number, HTMLIFrameElement | null>>({});
+  const videoElementRefs = useRef<Record<number, HTMLVideoElement | null>>({});
+  const selectedMediaIndexRef = useRef(selectedMediaIndex);
 
   // NEW: single repo metadata (cached 20 min)
   const [repoInfo, setRepoInfo] = useState<null | {
@@ -228,7 +242,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
 
   // Logo is stored separately in image field, subimages are in images array
   const logo = project?.image || null;
-  const mediaItems: MediaItem[] = (() => {
+  const mediaItems: MediaItem[] = useMemo(() => {
     const items: MediaItem[] = [];
     if (project?.video) {
       const yt = toYouTubeMedia(project.video);
@@ -246,7 +260,18 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       items.push(...project.images.map((url: string) => ({ type: "image", url })));
     }
     return items;
-  })();
+  }, [project]);
+  const hasYouTubeMedia = useMemo(() => mediaItems.some((item) => item.type === "youtube"), [mediaItems]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setWindowOrigin(window.location.origin);
+    }
+  }, []);
+
+  useEffect(() => {
+    setIsMediaPlaying(false);
+  }, [mediaItems]);
 
   const parseRepo = (input: string) => {
     const raw = input.trim();
@@ -456,16 +481,159 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
     }
   }, []);
 
-  const isVideoSlideActive = useMemo(() => {
-    const current = mediaItems[selectedMediaIndex];
-    return current?.type === "video" || current?.type === "youtube";
-  }, [mediaItems, selectedMediaIndex]);
+  const handleVideoPlay = useCallback((index: number) => {
+    if (selectedMediaIndexRef.current === index) {
+      setIsMediaPlaying(true);
+    }
+  }, []);
 
-  // Auto-advance carousel only when not on a video slide
+  const handleVideoPause = useCallback((index: number) => {
+    if (selectedMediaIndexRef.current === index) {
+      setIsMediaPlaying(false);
+    }
+  }, []);
+
+  const buildYouTubeSrc = useCallback((embedUrl: string) => {
+    try {
+      const url = new URL(embedUrl);
+      url.searchParams.set("enablejsapi", "1");
+      url.searchParams.set("rel", "0");
+      if (windowOrigin) {
+        url.searchParams.set("origin", windowOrigin);
+      }
+      return url.toString();
+    } catch {
+      return embedUrl;
+    }
+  }, [windowOrigin]);
+
+  useEffect(() => {
+    selectedMediaIndexRef.current = selectedMediaIndex;
+    setIsMediaPlaying(false);
+
+    Object.entries(videoElementRefs.current).forEach(([idx, video]) => {
+      const numericIndex = Number(idx);
+      if (!video || Number.isNaN(numericIndex) || numericIndex === selectedMediaIndex) {
+        return;
+      }
+      if (!video.paused) {
+        video.pause();
+      }
+      video.currentTime = 0;
+    });
+
+    Object.entries(youtubePlayersRef.current).forEach(([idx, player]) => {
+      const numericIndex = Number(idx);
+      if (Number.isNaN(numericIndex) || numericIndex === selectedMediaIndex) {
+        return;
+      }
+      if (player && typeof player.pauseVideo === "function") {
+        player.pauseVideo();
+      }
+    });
+  }, [selectedMediaIndex]);
+
+  useEffect(() => {
+    if (!hasYouTubeMedia) return;
+    if (typeof window === "undefined") return;
+
+    const markReady = () => {
+      setYouTubeApiReady(true);
+    };
+
+    if (window.YT && window.YT.Player) {
+      markReady();
+      return;
+    }
+
+    const previousReady = window.onYouTubeIframeAPIReady;
+    const readyWrapper = () => {
+      previousReady?.();
+      markReady();
+    };
+    window.onYouTubeIframeAPIReady = readyWrapper;
+
+    const scriptId = "youtube-iframe-api";
+    if (!document.getElementById(scriptId)) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.id = scriptId;
+      document.body.appendChild(tag);
+    }
+
+    return () => {
+      if (window.onYouTubeIframeAPIReady === readyWrapper) {
+        window.onYouTubeIframeAPIReady = previousReady;
+      }
+    };
+  }, [hasYouTubeMedia]);
+
+  useEffect(() => {
+    if (!youTubeApiReady) return;
+    if (typeof window === "undefined" || !window.YT || !window.YT.Player) return;
+
+    const activeIndexes = mediaItems
+      .map((item, index) => (item.type === "youtube" ? index : null))
+      .filter((value): value is number => value !== null);
+
+    activeIndexes.forEach((index) => {
+      if (youtubePlayersRef.current[index]) {
+        return;
+      }
+      const iframe = youtubeIframeRefs.current[index];
+      if (!iframe) {
+        return;
+      }
+
+      youtubePlayersRef.current[index] = new window.YT.Player(iframe, {
+        events: {
+          onStateChange: (event: any) => {
+            if (selectedMediaIndexRef.current !== index) {
+              if (event.data === 1 && typeof event.target?.pauseVideo === "function") {
+                event.target.pauseVideo();
+              }
+              return;
+            }
+
+            if (event.data === 1) {
+              setIsMediaPlaying(true);
+            } else if (event.data === 0 || event.data === 2 || event.data === 5) {
+              setIsMediaPlaying(false);
+            }
+          },
+        },
+      });
+    });
+
+    Object.keys(youtubePlayersRef.current).forEach((key) => {
+      const numericKey = Number(key);
+      if (!activeIndexes.includes(numericKey)) {
+        const player = youtubePlayersRef.current[numericKey];
+        if (player && typeof player.destroy === "function") {
+          player.destroy();
+        }
+        delete youtubePlayersRef.current[numericKey];
+      }
+    });
+
+    return () => {
+      Object.keys(youtubePlayersRef.current).forEach((key) => {
+        const player = youtubePlayersRef.current[Number(key)];
+        if (player && typeof player.destroy === "function") {
+          player.destroy();
+        }
+        delete youtubePlayersRef.current[Number(key)];
+      });
+    };
+  }, [mediaItems, youTubeApiReady]);
+
+  const shouldAutoAdvance = mediaItems.length > 1 && !isMediaPlaying;
+
+  // Auto-advance carousel every 5 seconds when media isn't actively playing
   useEffect(() => {
     clearCarouselInterval();
 
-    if (mediaItems.length <= 1 || isVideoSlideActive) {
+    if (!shouldAutoAdvance) {
       return;
     }
 
@@ -481,7 +649,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
     return () => {
       clearCarouselInterval();
     };
-  }, [mediaItems.length, isVideoSlideActive, clearCarouselInterval]);
+  }, [shouldAutoAdvance, mediaItems.length, selectedMediaIndex, clearCarouselInterval]);
 
   // Reset carousel timer when user manually selects an image
   const handleMediaSelect = (index: number) => {
@@ -492,6 +660,7 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
       setSlideDirection("left");
     }
     setSelectedMediaIndex(index);
+    setIsMediaPlaying(false);
     clearCarouselInterval();
   };
 
@@ -869,7 +1038,11 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                           />
                         ) : item.type === "youtube" && item.embedUrl ? (
                           <iframe
-                            src={item.embedUrl}
+                            ref={(el) => {
+                              youtubeIframeRefs.current[index] = el;
+                            }}
+                            id={`youtube-player-${project?._id ?? "project"}-${index}`}
+                            src={buildYouTubeSrc(item.embedUrl)}
                             title={`${project.name} - Video ${index + 1}`}
                             className="w-full h-full"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -880,6 +1053,12 @@ export default function ProjectDetail({ projectId, from, username }: ProjectDeta
                             src={item.url}
                             controls
                             className="w-full h-full object-cover bg-black"
+                            ref={(el) => {
+                              videoElementRefs.current[index] = el;
+                            }}
+                            onPlay={() => handleVideoPlay(index)}
+                            onPause={() => handleVideoPause(index)}
+                            onEnded={() => handleVideoPause(index)}
                           />
                         )}
                       </div>

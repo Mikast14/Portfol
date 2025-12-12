@@ -72,14 +72,6 @@ const projectSchema = new mongoose.Schema(
       type: [String], // Array of paths to image files
       required: false,
     },
-    video: {
-      type: String, // Primary video URL (optional)
-      required: false,
-    },
-    videos: {
-      type: [String], // Additional video URLs
-      required: false,
-    },
     githubDisplaySettings: {
       type: githubDisplaySettingsSchema,
       required: false,
