@@ -44,7 +44,10 @@ const Navbar = () => {
   const navLinks = [
     { label: "Explore", href: "/explore" },
     { label: "Your Projects", href: "/yourprojects" },
-    ...(isAuthenticated ? [{ label: "Bookmarks", href: "/bookmarks" }] : []),
+    ...(isAuthenticated ? [
+      { label: "Bookmarks", href: "/bookmarks" },
+      { label: "Chat", href: "/chat" }
+    ] : []),
   ];
 
   // Prevent autofill on search input - aggressive prevention for all password managers

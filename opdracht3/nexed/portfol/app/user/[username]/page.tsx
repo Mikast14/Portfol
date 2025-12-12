@@ -7,6 +7,7 @@ import ProjectCard from "../../components/ProjectCard";
 import Image from "next/image";
 import SkillTree, { SkillItem } from "../../components/SkillTree";
 import { getLanguageColor } from "@/app/lib/languageColors";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Project {
   _id: string;
@@ -36,6 +37,7 @@ interface ProfileData {
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const usernameParam = params?.username;
   // Next.js automatically decodes URL params, so we get the decoded username
   let username = typeof usernameParam === 'string' ? usernameParam : Array.isArray(usernameParam) ? usernameParam[0] : null;
@@ -323,6 +325,28 @@ export default function UserProfilePage() {
                       )}
                     </div>
                   </div>
+                  {/* Message Button - Only show if authenticated and not viewing own profile */}
+                  {isAuthenticated && currentUser && currentUser.id !== user.id && (
+                    <button
+                      onClick={() => router.push(`/chat?userId=${user.id}`)}
+                      className="bg-accent text-white rounded-full px-6 py-3 hover:bg-primary-hover transition-colors font-medium flex items-center gap-2 shrink-0"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        />
+                      </svg>
+                      Message
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
