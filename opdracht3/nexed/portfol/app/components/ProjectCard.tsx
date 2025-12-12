@@ -11,6 +11,8 @@ type ProjectItem = {
   description?: string;
   image?: string;
   images?: string[];
+  video?: string;
+  videos?: string[];
   platforms?: string[];
   userId?: {
     username?: string;
@@ -49,17 +51,39 @@ export default function ProjectCard({
   const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const { isAuthenticated, user } = useAuth();
-  // Allow admin to edit/delete any project, or if explicitly set, or if in profile mode
-  const isAdmin = user?.email === "admin@admin.nl";
-  const canEdit = showEditButton ?? (mode === "profile" || (isAdmin && isAuthenticated));
-  const canDelete = showDeleteButton ?? (mode === "profile" || (isAdmin && isAuthenticated));
+  const canEdit = showEditButton ?? mode === "profile";
+  const canDelete = showDeleteButton ?? mode === "profile";
   const showBookmark = mode === "explore" && isAuthenticated;
   const showLike = mode === "explore" && isAuthenticated && project.userId?._id !== user?.id;
 
-  // Use first image from images array, or fall back to main image
-  const displayImage = project.images && project.images.length > 0 
-    ? project.images[0] 
-    : project.image;
+  const parseYouTube = (url?: string) => {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes("youtube.com")) {
+        const v = u.searchParams.get("v");
+        if (v) return v;
+        const parts = u.pathname.split("/");
+        const idx = parts.findIndex((p) => p === "shorts");
+        if (idx >= 0 && parts[idx + 1]) return parts[idx + 1];
+      }
+      if (u.hostname === "youtu.be") {
+        const id = u.pathname.replace("/", "");
+        if (id) return id;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const firstImage = project.images && project.images.length > 0 ? project.images[0] : project.image;
+  const firstVideo = project.videos && project.videos.length > 0 ? project.videos[0] : project.video;
+  const ytId = parseYouTube(firstVideo || undefined);
+  const youtubeThumb = ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+  const displayMedia = firstImage || youtubeThumb || firstVideo;
+  const displayIsVideo = !!firstVideo && !firstImage;
+  const displayIsYouTube = !!youtubeThumb && !firstImage;
 
   // Check if project is bookmarked
   useEffect(() => {
