@@ -4,7 +4,8 @@ import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import PinterestCard from "../components/PinterestCard";
+// import PinterestCard from "../components/PinterestCard";
+import ProjectCard from "../components/ProjectCard";
 import Navbar from "../components/Navbar";
 
 type FilterType = 
@@ -469,9 +470,10 @@ const ProjectsPage = () => {
                 style={{ columnGap: "1.5rem" }}
               >
                 {filteredProjects.map((project: Project) => (
-                  <PinterestCard
+                  <ProjectCard
                     key={project._id}
                     project={project}
+                    mode="explore"
                     onOpen={() => router.push(`/explore/project/${project._id}`)}
                   />
                 ))}

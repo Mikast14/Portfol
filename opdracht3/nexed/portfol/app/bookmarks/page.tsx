@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import PinterestCard from "../components/PinterestCard";
+// import PinterestCard from "../components/PinterestCard";
+import ProjectCard from "../components/ProjectCard";
 import Navbar from "../components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -149,11 +150,12 @@ const BookmarksPage = () => {
               </button>
             </div>
           ) : (
-            <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6">
+            <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 space-y-0" style={{ columnGap: "1.5rem" }}>
               {bookmarkedProjects.map((project) => (
-                <PinterestCard
+                <ProjectCard
                   key={project._id}
                   project={project}
+                  mode="explore"
                   onOpen={handleProjectClick}
                 />
               ))}

@@ -50,6 +50,7 @@ export default function ProjectCard({
   const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [isTallImage, setIsTallImage] = useState(false);
+  const [tallDuration, setTallDuration] = useState(400); // was 1200, now much faster by default
   const { isAuthenticated, user } = useAuth();
   const canEdit = showEditButton ?? mode === "profile";
   const canDelete = showDeleteButton ?? mode === "profile";
@@ -267,7 +268,6 @@ export default function ProjectCard({
             <div className="relative w-full h-full">
               {displayIsVideo ? (
                 displayIsYouTube ? (
-                  // YouTube thumbnail (image with play icon)
                   <div className="relative w-full h-full">
                     <Image
                       src={displayMedia}
@@ -276,15 +276,26 @@ export default function ProjectCard({
                       height={600}
                       onError={() => setImageError(true)}
                       onLoadingComplete={(img) => {
-                        const aspect = img.naturalWidth / img.naturalHeight;
-                        setIsTallImage(aspect < 16 / 9);
+                        const aspect = img.naturalWidth / img.naturalHeight; // w / h
+                        const isTall = aspect < 16 / 9;
+                        setIsTallImage(isTall);
+                        if (isTall) {
+                          const ratio = (16 / 9) / aspect; // > 1 for taller images
+                          // Faster base: 400ms, scaled by ratio, clamped between 300ms and 2000ms
+                          const duration = Math.min(2000, Math.max(300, 400 * ratio));
+                          setTallDuration(duration);
+                        }
                       }}
                       className={
                         isTallImage
-                          ? "w-full h-full object-cover object-top transition-all duration-1000 ease-in-out group-hover:object-bottom"
+                          ? "w-full h-full object-cover object-top group-hover:object-bottom"
                           : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                       }
-                      style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
+                      style={
+                        isTallImage
+                          ? { transition: `object-position ${tallDuration}ms ease-in-out` }
+                          : { maxWidth: "100%", height: "auto" }
+                      }
                       loading="lazy"
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -312,14 +323,25 @@ export default function ProjectCard({
                   onError={() => setImageError(true)}
                   onLoadingComplete={(img) => {
                     const aspect = img.naturalWidth / img.naturalHeight;
-                    setIsTallImage(aspect < 16 / 9);
+                    const isTall = aspect < 16 / 9;
+                    setIsTallImage(isTall);
+                    if (isTall) {
+                      const ratio = (16 / 9) / aspect;
+                      // Faster base: 400ms, scaled by ratio, clamped between 300ms and 2000ms
+                      const duration = Math.min(2000, Math.max(300, 400 * ratio));
+                      setTallDuration(duration);
+                    }
                   }}
                   className={
                     isTallImage
-                      ? "w-full h-full object-cover object-top transition-all duration-1000 ease-in-out group-hover:object-bottom"
+                      ? "w-full h-full object-cover object-top group-hover:object-bottom"
                       : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                   }
-                  style={isTallImage ? undefined : { maxWidth: "100%", height: "auto" }}
+                  style={
+                    isTallImage
+                      ? { transition: `object-position ${tallDuration}ms ease-in-out` }
+                      : { maxWidth: "100%", height: "auto" }
+                  }
                   loading="lazy"
                 />
               )}
