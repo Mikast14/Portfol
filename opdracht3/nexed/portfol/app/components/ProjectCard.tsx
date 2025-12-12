@@ -50,7 +50,8 @@ export default function ProjectCard({
   const [likesCount, setLikesCount] = useState(project.likes?.length || 0);
   const [likeLoading, setLikeLoading] = useState(false);
   const [isTallImage, setIsTallImage] = useState(false);
-  const [tallDuration, setTallDuration] = useState(400); // was 1200, now much faster by default
+  const [tallDuration, setTallDuration] = useState(400); // slow hover-in base
+  const [isHovered, setIsHovered] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const canEdit = showEditButton ?? mode === "profile";
   const canDelete = showDeleteButton ?? mode === "profile";
@@ -257,6 +258,8 @@ export default function ProjectCard({
           onOpen?.(project._id);
         }
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
         {/* Image / Video Container */}
@@ -268,6 +271,7 @@ export default function ProjectCard({
             <div className="relative w-full h-full">
               {displayIsVideo ? (
                 displayIsYouTube ? (
+                  // --- YOUTUBE THUMBNAIL IMAGE BRANCH ---
                   <div className="relative w-full h-full">
                     <Image
                       src={displayMedia}
@@ -280,20 +284,25 @@ export default function ProjectCard({
                         const isTall = aspect < 16 / 9;
                         setIsTallImage(isTall);
                         if (isTall) {
-                          const ratio = (16 / 9) / aspect; // > 1 for taller images
-                          // Faster base: 400ms, scaled by ratio, clamped between 300ms and 2000ms
+                          const ratio = (16 / 9) / aspect;
                           const duration = Math.min(2000, Math.max(300, 400 * ratio));
-                          setTallDuration(duration);
+                          setTallDuration(duration); // this is the SLOW hover-in duration
                         }
                       }}
                       className={
                         isTallImage
-                          ? "w-full h-full object-cover object-top group-hover:object-bottom"
+                          ? "w-full h-full object-cover"
                           : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                       }
                       style={
                         isTallImage
-                          ? { transition: `object-position ${tallDuration}ms ease-in-out` }
+                          ? {
+                              objectPosition: isHovered ? "bottom" : "top",
+                              // slower on hover, faster when leaving
+                              transition: `object-position ${
+                                isHovered ? tallDuration : Math.max(150, tallDuration / 3)
+                              }ms ease-in-out`,
+                            }
                           : { maxWidth: "100%", height: "auto" }
                       }
                       loading="lazy"
@@ -314,7 +323,7 @@ export default function ProjectCard({
                   />
                 )
               ) : (
-                // Pure image
+                // --- PURE IMAGE BRANCH ---
                 <Image
                   src={displayMedia}
                   alt={project.name}
@@ -327,19 +336,23 @@ export default function ProjectCard({
                     setIsTallImage(isTall);
                     if (isTall) {
                       const ratio = (16 / 9) / aspect;
-                      // Faster base: 400ms, scaled by ratio, clamped between 300ms and 2000ms
                       const duration = Math.min(2000, Math.max(300, 400 * ratio));
                       setTallDuration(duration);
                     }
                   }}
                   className={
                     isTallImage
-                      ? "w-full h-full object-cover object-top group-hover:object-bottom"
+                      ? "w-full h-full object-cover"
                       : "w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                   }
                   style={
                     isTallImage
-                      ? { transition: `object-position ${tallDuration}ms ease-in-out` }
+                      ? {
+                          objectPosition: isHovered ? "bottom" : "top",
+                          transition: `object-position ${
+                            isHovered ? tallDuration : Math.max(150, tallDuration / 3)
+                          }ms ease-in-out`,
+                        }
                       : { maxWidth: "100%", height: "auto" }
                   }
                   loading="lazy"
