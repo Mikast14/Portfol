@@ -64,13 +64,13 @@ export default function RegistrationPage() {
 
                         <form noValidate className="space-y-6" onSubmit={handleSubmit}>
                             <div>
-                                <label htmlFor="username" className="block text-sm font-medium text-black mb-2">Volledige naam</label>
+                                <label htmlFor="username" className="block text-sm font-medium text-black mb-2">Gebruikersnaam</label>
                                 <input
                                     id="username"
                                     name="username"
                                     type="text"
                                     autoComplete="name"
-                                    placeholder="Username"
+                                    placeholder="Gebruikersnaam"
                                     className="w-full px-4 py-3 border border-gray-300 rounded-base text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
                                     required
                                     value={username}

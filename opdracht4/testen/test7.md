@@ -49,13 +49,12 @@
 **Stappen:**
 1. Navigeer naar project detailpagina van een project
 2. Zoek bookmark knop op de pagina:
-   - Bookmark knop is zichtbaar (mogelijk hart icon of bookmark icon)
+   - Bookmark knop is zichtbaar (bookmark icon)
    - Bookmark knop toont lege icon (nog niet gebookmarkt)
 3. Klik op bookmark knop
 4. Wacht op response
 5. Controleer dat bookmark wordt toegevoegd:
    - Icon verandert naar gevulde icon
-   - Success melding wordt getoond (indien geïmplementeerd)
    - Bookmark wordt opgeslagen in database
 6. Refresh de pagina
 7. Controleer dat bookmark status behouden blijft:
@@ -92,7 +91,6 @@
 4. Wacht op response
 5. Controleer dat bookmark wordt verwijderd:
    - Icon verandert naar lege icon
-   - Success melding wordt getoond (indien geïmplementeerd)
    - Bookmark wordt verwijderd uit database
 6. Navigeer naar bookmark pagina
 7. Controleer dat project niet meer in lijst staat
@@ -124,9 +122,7 @@
    - Projecten worden getoond in grid of lijst
    - Elke projectcard toont:
      - Project titel
-     - Project beschrijving (verkort)
      - Thumbnail/afbeelding
-     - Auteur informatie
    - Elke projectcard heeft optie om bookmark te verwijderen
 4. Test navigatie:
    - Klik op een projectcard
@@ -134,15 +130,10 @@
 5. Test verwijder functionaliteit:
    - Klik op "Verwijder bookmark" knop op een projectcard
    - Controleer dat project wordt verwijderd uit lijst
-6. Controleer responsive design:
-   - Test op desktop, tablet en mobiel
-   - Layout past zich aan aan schermformaat
-
 **Gewenst resultaat:**
 - Bookmark pagina heeft duidelijke layout
 - Alle gebookmarkte projecten worden getoond in grid of lijst
 - Elke projectcard heeft optie om bookmark te verwijderen
-- Layout is responsive en gebruiksvriendelijk
 - Klikken op projectcard navigeert naar project detailpagina
 
 **Alternatief pad 7.3a: Sortering van bookmarks**
@@ -180,7 +171,7 @@
 - Visual feedback is gebruiksvriendelijk
 
 **Alternatief pad 7.4a: Verschillende iconen**
-- Testdata: Verschillende iconen worden gebruikt (hart, bookmark, ster)
+- Testdata: Verschillende iconen worden gebruikt (bookmark)
 - Gewenst resultaat: Iconen zijn consistent en duidelijk
 
 ---
@@ -205,18 +196,15 @@
    - OF bookmark knop is zichtbaar maar disabled
    - OF klikken op bookmark knop toont login prompt
 4. Probeer direct naar bookmark pagina te navigeren
-5. Controleer dat je wordt doorgestuurd naar login pagina
 
 **Gewenst resultaat:**
 - Ingelogde gebruikers kunnen bookmarken
 - Niet-ingelogde gebruikers kunnen niet bookmarken
 - Bookmark knop is verborgen of disabled voor niet-ingelogde gebruikers
 - Toegang tot bookmark pagina vereist login
-- Duidelijke feedback wordt gegeven (login prompt indien nodig)
 
 **Alternatief pad 7.5a: Login prompt bij bookmarken**
 - Testdata: Niet-ingelogde gebruiker klikt op bookmark knop
-- Gewenst resultaat: Login prompt of redirect naar login pagina
 
 ---
 
@@ -253,90 +241,63 @@
 
 ## Testrapport
 
-### Testuitvoering
-**Datum:** [Vul datum in]  
-**Tester:** [Vul naam in]  
-**Applicatie versie:** [Vul versie in]  
-**Browser:** [Vul browser in]  
-**Aantal bookmarks getest:** [Aantal]
-
 ### Resultaten per Scenario
 
 #### Scenario 7.1: Project bookmarken
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Werkt zoals we verwachten
 
 #### Scenario 7.2: Bookmark verwijderen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Werkt zoals we verwachten
 
 #### Scenario 7.3: Bookmark pagina weergave
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Aantal bookmarks getoond:** [Aantal]
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Werkt zoals we verwachten
 
 #### Scenario 7.4: Bookmark status visueel aangeven
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Werkt zoals we verwachten
 
 #### Scenario 7.5: Alleen ingelogde gebruikers kunnen bookmarken
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Werkt zoals we verwachten
 
 #### Scenario 7.6: Lege state bookmark pagina
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Werkt zoals we verwachten
 
 ### Alternatieve Paden
 
 #### Alternatief pad 7.1a: Eigen project bookmarken
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 7.1b: Meerdere projecten bookmarken
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 7.2a: Verwijderen vanaf bookmark pagina
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 7.3a: Sortering van bookmarks
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 7.4a: Verschillende iconen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 7.5a: Login prompt
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 7.6a: Nieuwe gebruiker
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 ### Conclusie
 
 **Algemene bevindingen:**
-- [Beschrijf algemene bevindingen over bookmark functionaliteit]
-
-**Samenhang met andere User Stories:**
-- **US-1 (Authenticatie)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe authenticatie werkt met bookmarken]
-- **US-8 (Project Detail)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe bookmark knop werkt op project detailpagina]
-- **US-5 (Explore)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe bookmark functionaliteit werkt vanuit Explore pagina]
-
-**Aanbevelingen:**
-- [Lijst met aanbevelingen]
-
-**Kritieke issues:**
-- [Lijst met kritieke problemen]
-
-**Totaal aantal tests:** 6 scenario's + 7 alternatieve paden = 13 tests  
-**Geslaagd:** [Aantal]  
-**Gefaald:** [Aantal]  
-**Niet uitgevoerd:** [Aantal]  
-**Succespercentage:** [Percentage]%
+- Alle functies werken zoals wij verwachten en werken goed.

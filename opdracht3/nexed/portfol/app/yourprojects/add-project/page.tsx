@@ -33,7 +33,7 @@ export default function AddProject() {
   const [message, setMessage] = useState("");
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
-  const [githubUsername, setGithubUsername] = useState("mikast14");
+  const [githubUsername, setGithubUsername] = useState("");
   const [githubDisplaySettings, setGithubDisplaySettings] = useState<GitHubDisplaySettings>(DEFAULT_GITHUB_SETTINGS);
 
   useEffect(() => {

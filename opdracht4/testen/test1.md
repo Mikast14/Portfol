@@ -58,8 +58,7 @@
 
 **Gewenst resultaat:**
 - Success melding wordt getoond
-- Gebruiker wordt doorgestuurd naar dashboard/profiel pagina
-- Gebruiker is ingelogd (navbar toont profilepicture)
+- Gebruiker wordt doorgestuurd naar Inlog pagina
 - Gebruikersgegevens zijn opgeslagen in de database
 
 **Alternatief pad 1.1a: Lege username**
@@ -104,11 +103,11 @@
 
 **Alternatief pad 1.2a: Verkeerd wachtwoord**
 - Testdata: Wachtwoord: `VerkeerdWachtwoord123!`
-- Gewenst resultaat: Error melding "Ongeldige inloggegevens" wordt getoond
+- Gewenst resultaat: Error melding "Ongeldig e-mailadres of wachtwoord" wordt getoond
 
 **Alternatief pad 1.2b: Onbekend emailadres**
 - Testdata: Email: `onbekend@example.com`
-- Gewenst resultaat: Error melding "Ongeldige inloggegevens" wordt getoond
+- Gewenst resultaat: Error melding "Ongeldig e-mailadres of wachtwoord" wordt getoond
 
 **Alternatief pad 1.2c: Lege velden**
 - Testdata: Beide velden leeg
@@ -162,67 +161,46 @@
 ### Resultaten per Scenario
 
 #### Scenario 1.1: Succesvolle registratie
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☐ Geslaagd ☑ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
-- **Screenshots:** [Voeg screenshots toe indien beschikbaar]
+  - Alle soorten tests waren geslaagd behalve de test van Alternatief pad 1.1b
 
 #### Scenario 1.2: Succesvol inloggen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Alle alternative testen worden voldaan zoals het hoort.
 
 #### Scenario 1.3: Validatiefouten bij registratie
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☐ Geslaagd ☑ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Alleen Test 1.3c werkte zoals gewilt
 
 #### Scenario 1.4: Uitloggen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
-  - [Vul opmerkingen in]
+  - Wordt gedaan als gewilt
 
 ### Alternatieve Paden
 
 #### Alternatief pad 1.1a: Lege username
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 1.1b: Ongeldig email formaat
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☐ Geslaagd ☑ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 1.1c: Wachtwoorden komen niet overeen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 1.1d: Te kort wachtwoord
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 1.2a: Verkeerd wachtwoord
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 1.2b: Onbekend emailadres
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 ### Conclusie
 
 **Algemene bevindingen:**
-- [Beschrijf algemene bevindingen over de authenticatie functionaliteit]
-
-**Samenhang met andere User Stories:**
-- **US-2 (Projecten)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe inloggen werkt met projecten aanmaken]
-- **US-11 (Profiel)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe inloggen werkt met profiel bekijken]
-- **US-16 (Settings)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe inloggen werkt met settings aanpassen]
-
-**Aanbevelingen:**
-- [Lijst met aanbevelingen voor verbeteringen]
-
-**Kritieke issues:**
-- [Lijst met kritieke problemen die opgelost moeten worden]
-
-**Totaal aantal tests:** 4 scenario's + 6 alternatieve paden = 10 tests  
-**Geslaagd:** [Aantal]  
-**Gefaald:** [Aantal]  
-**Niet uitgevoerd:** [Aantal]  
-**Succespercentage:** [Percentage]%
+- Meeste dingen werken als gewilt, maar er zijn een aantal stappen die niet optimaal werken
