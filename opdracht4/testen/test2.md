@@ -49,29 +49,25 @@
 **Testdata:**
 - Titel: `Mijn Eerste Portfolio Project`
 - Beschrijving: `Dit is een testproject om de functionaliteit te testen. Het project bevat verschillende features en technologieën.`
-- Technologieën: `React, Node.js, MongoDB`
 - GitHub link: `https://github.com/gebruiker/mijn-project`
 - Live demo link: `https://mijn-project.example.com`
 - Tags: `web-development, portfolio`
 
 **Stappen:**
-1. Navigeer naar de "Project toevoegen" pagina (via navbar of profiel)
+1. Navigeer naar de "Project toevoegen" pagina (via Your projects page)
 2. Controleer dat het projectformulier zichtbaar is met alle benodigde velden:
    - Titel veld
    - Beschrijving veld (textarea)
    - Technologieën veld
    - GitHub link veld
-   - Live demo link veld
    - Tags selectie
    - Submit knop
 3. Vul het titel veld in: `Mijn Eerste Portfolio Project`
 4. Vul de beschrijving in: `Dit is een testproject om de functionaliteit te testen. Het project bevat verschillende features en technologieën.`
-5. Vul technologieën in: `React, Node.js, MongoDB`
-6. Vul GitHub link in: `https://github.com/gebruiker/mijn-project`
-7. Vul live demo link in: `https://mijn-project.example.com`
-8. Selecteer of voeg tags toe: `web-development, portfolio`
-9. Klik op de submit knop
-10. Wacht op de response
+5. Vul GitHub link in: `https://github.com/gebruiker/mijn-project`
+6. Selecteer of voeg tags toe: `web-development, portfolio`
+7. Klik op de submit knop
+8. Wacht op de response
 
 **Gewenst resultaat:**
 - Success melding wordt getoond: "Project succesvol aangemaakt"
@@ -91,43 +87,39 @@
 
 **Voorbereiding:**
 - Gebruiker moet ingelogd zijn
-- Bereid testafbeeldingen voor (JPG, PNG, max 5MB)
+- Bereid testafbeelding URLs voor (JPG, PNG)
 
 **Testdata:**
 - Titel: `Project met Afbeeldingen`
 - Beschrijving: `Dit project heeft meerdere afbeeldingen`
-- Afbeelding 1: `test-image.jpg` (2MB, JPG formaat)
-- Afbeelding 2: `test-image.png` (1MB, PNG formaat)
+- Afbeelding 1: `https://example.com/test-image.jpg` (JPG formaat)
+- Afbeelding 2: `https://example.com/test-image.png` (PNG formaat)
 
 **Stappen:**
 1. Navigeer naar de "Project toevoegen" pagina
 2. Vul basis project informatie in (titel, beschrijving)
-3. Zoek het afbeelding upload veld
-4. Klik op "Bestand kiezen" of drag-and-drop gebied
-5. Selecteer `test-image.jpg`
+3. Zoek het afbeelding URL veld
+4. Voer de URL in of plak de URL in het veld
+5. Voer URL in: `https://example.com/test-image.jpg`
 6. Controleer dat preview van afbeelding wordt getoond
-7. Voeg tweede afbeelding toe: `test-image.png`
+7. Voeg tweede afbeelding toe: `https://example.com/test-image.png`
 8. Controleer dat beide previews zichtbaar zijn
 9. Klik op submit knop
-10. Wacht op upload en opslaan
+10. Wacht op laden en opslaan
 
 **Gewenst resultaat:**
-- Afbeeldingen worden geüpload zonder errors
-- Preview van afbeeldingen wordt getoond voor upload
-- Na opslaan worden afbeeldingen opgeslagen (cloud storage of database)
+- Afbeeldingen worden geladen van URLs zonder errors
+- Preview van afbeeldingen wordt getoond na URL invoer
+- Na opslaan worden afbeelding URLs opgeslagen (cloud storage of database)
 - Afbeeldingen zijn zichtbaar op project detailpagina
 - Project wordt succesvol aangemaakt
 
-**Alternatief pad 2.2a: Te groot bestand**
-- Testdata: Afbeelding van 10MB
-- Gewenst resultaat: Error melding "Bestand is te groot (max 5MB)"
-
-**Alternatief pad 2.2b: Ongeldig bestandstype**
-- Testdata: PDF bestand of .exe bestand
+**Alternatief pad 2.2a: Ongeldig bestandstype**
+- Testdata: URL naar PDF bestand: `https://example.com/document.pdf` of ongeldige URL
 - Gewenst resultaat: Error melding "Alleen JPG, PNG, GIF, WebP zijn toegestaan"
 
-**Alternatief pad 2.2c: Geen afbeeldingen**
-- Testdata: Geen afbeeldingen geüpload
+**Alternatief pad 2.2b: Geen afbeeldingen**
+- Testdata: Geen afbeelding URLs ingevoerd
 - Gewenst resultaat: Project wordt aangemaakt zonder afbeeldingen
 
 ---
@@ -138,13 +130,12 @@
 - Minimaal 2 projecten moeten aangemaakt zijn (via scenario 2.1)
 
 **Stappen:**
-1. Navigeer naar je gebruikerspagina/profiel
+1. Navigeer naar je navbar
 2. Zoek de sectie "Mijn Projecten" of "Projecten"
 3. Controleer dat alle aangemaakte projecten zichtbaar zijn
 4. Controleer de weergave (grid of lijst)
 5. Controleer dat elke projectcard bevat:
    - Project titel
-   - Samenvatting/beschrijving (verkort)
    - Thumbnail/afbeelding (indien aanwezig)
 6. Klik op een projectcard
 7. Controleer dat je naar project detailpagina wordt doorgestuurd
@@ -152,10 +143,9 @@
 **Gewenst resultaat:**
 - Alle projecten van de gebruiker zijn zichtbaar
 - Projecten worden getoond in grid of lijst weergave
-- Elke projectcard toont titel, samenvatting en thumbnail
+- Elke projectcard toont titel en thumbnail
 - Projecten zijn gesorteerd op datum (nieuwste eerst)
 - Klikken op projectcard navigeert naar detailpagina
-- Layout is responsive (test op mobiel, tablet, desktop)
 
 **Alternatief pad 2.3a: Geen projecten**
 - Testdata: Gebruiker heeft geen projecten aangemaakt
@@ -173,7 +163,6 @@
 - Originele titel: `Mijn Eerste Portfolio Project`
 - Nieuwe titel: `Mijn Eerste Portfolio Project - Bijgewerkt`
 - Nieuwe beschrijving: `Dit project is bijgewerkt met nieuwe informatie`
-- Nieuwe technologie: `React, Node.js, MongoDB, TypeScript`
 
 **Stappen:**
 1. Navigeer naar gebruikerspagina met projecten
@@ -186,9 +175,8 @@
    - Alle andere velden zijn voorgevuld
 6. Wijzig de titel naar: `Mijn Eerste Portfolio Project - Bijgewerkt`
 7. Wijzig de beschrijving naar: `Dit project is bijgewerkt met nieuwe informatie`
-8. Voeg technologie toe: `TypeScript`
-9. Klik op "Opslaan" of submit knop
-10. Wacht op response
+8. Klik op "Opslaan" of submit knop
+9. Wacht op response
 
 **Gewenst resultaat:**
 - Formulier is correct voorgevuld met bestaande gegevens
@@ -250,21 +238,15 @@
 **Gewenst resultaat:**
 - "Bewerken" knop is NIET zichtbaar voor Gebruiker B
 - Gebruiker B kan het project niet bewerken
-- Indien directe URL wordt gebruikt: Error melding of redirect
+- Indien directe URL wordt gebruikt: Error melding
 
 **Alternatief pad 2.6a: Directe URL toegang**
 - Stappen: Gebruiker B probeert direct naar bewerkingspagina te navigeren via URL
-- Gewenst resultaat: 403 Forbidden of redirect naar project detailpagina met error melding
+- Gewenst resultaat: Erorr melding
 
 ---
 
 ## Testrapport
-
-### Testuitvoering
-**Datum:** [Vul datum in]  
-**Tester:** [Vul naam in]  
-**Applicatie versie:** [Vul versie in]  
-**Browser:** [Vul browser in]
 
 ### Resultaten per Scenario
 
@@ -303,10 +285,7 @@
 #### Alternatief pad 2.1a: Alleen verplichte velden
 - **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
-#### Alternatief pad 2.2a: Te groot bestand
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-
-#### Alternatief pad 2.2b: Ongeldig bestandstype
+#### Alternatief pad 2.2a: Ongeldig bestandstype
 - **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 2.3a: Geen projecten
@@ -336,7 +315,7 @@
 **Kritieke issues:**
 - [Lijst met kritieke problemen]
 
-**Totaal aantal tests:** 6 scenario's + 5 alternatieve paden = 11 tests  
+**Totaal aantal tests:** 6 scenario's + 4 alternatieve paden = 10 tests  
 **Geslaagd:** [Aantal]  
 **Gefaald:** [Aantal]  
 **Niet uitgevoerd:** [Aantal]  

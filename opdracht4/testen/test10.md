@@ -12,7 +12,7 @@
    - Gerelateerd aan Task #97
 
 2. **Scenario 10.2: Profielfoto wijzigen**
-   - Gebruiker kan profielfoto uploaden en wijzigen
+   - Gebruiker kan profielfoto wijzigen door image URL in te voeren
    - Gerelateerd aan Task #98
 
 3. **Scenario 10.3: Gebruikersnaam wijzigen**
@@ -26,10 +26,6 @@
 5. **Scenario 10.5: Account verwijderen**
    - Gebruiker kan zijn account verwijderen
    - Gerelateerd aan Task #101
-
-6. **Scenario 10.6: Validatie en security**
-   - Validatie en security checks werken correct
-   - Gerelateerd aan alle tasks
 
 ### Samenhang met andere User Stories
 - **US-1**: Gebruiker moet ingelogd zijn om settings te bewerken
@@ -49,20 +45,12 @@
 2. Navigeer naar settings pagina (via navbar of directe URL: `/settings`)
 3. Controleer dat settings pagina correct wordt geladen:
    - Pagina heeft duidelijke layout met secties
-   - Secties zijn georganiseerd (profiel, contact, account, privacy)
-4. Controleer navigatie tussen secties:
-   - Tabs of links naar verschillende secties zijn zichtbaar
-   - Klikken op sectie navigeert naar juiste sectie
-5. Controleer responsive design:
-   - Layout werkt op desktop, tablet en mobiel
-   - Formulieren zijn gebruiksvriendelijk
+   - Secties zijn georganiseerd (Profile image, Username, delete account)
 
 **Gewenst resultaat:**
 - Settings pagina heeft duidelijke layout met secties
-- Layout bevat secties voor profiel, contact, account en privacy
+- Layout bevat secties voor Profile image, Username, delete account
 - Formulieren zijn georganiseerd en gebruiksvriendelijk
-- Layout is responsive en werkt op alle schermformaten
-- Navigatie tussen secties is duidelijk
 
 ---
 
@@ -70,39 +58,36 @@
 
 **Voorbereiding:**
 - Gebruiker moet ingelogd zijn
-- Bereid testafbeelding voor (JPG, max 5MB)
 
 **Testdata:**
-- Nieuwe profielfoto: `new-profile.jpg` (2MB, JPG formaat)
+- Nieuwe profielfoto URL: `https://example.com/profile-image.jpg`
 
 **Stappen:**
 1. Navigeer naar settings pagina
-2. Zoek "Profielfoto" sectie
-3. Controleer huidige profielfoto (indien aanwezig)
-4. Klik op "Upload nieuwe foto" of "Wijzigen" knop
-5. Selecteer bestand: `new-profile.jpg`
-6. Controleer preview van nieuwe profielfoto
-7. Klik op "Opslaan" knop
-8. Wacht op upload en opslaan
-9. Controleer dat profielfoto wordt bijgewerkt:
-   - Success melding wordt getoond
-   - Profielfoto wordt opgeslagen in database
+2. Zoek "Profile image" sectie
+3. Controleer huidige profielfoto
+4. Voer image URL in: `https://example.com/profile-image.jpg`
+5. Controleer preview van nieuwe profielfoto
+6. Klik op "Opslaan" knop
+7. Wacht op opslaan
+8. Controleer dat profielfoto wordt bijgewerkt:
+   - Profielfoto URL wordt opgeslagen in database
    - Profielfoto is zichtbaar op profielpagina
 
 **Gewenst resultaat:**
-- Gebruiker kan nieuwe profielfoto uploaden
-- Ondersteunde bestandsformaten werken (JPG, PNG, GIF, WebP)
-- Bestandsgrootte limiet wordt gehandhaafd
+- Gebruiker kan nieuwe profielfoto URL invoeren
+- URL wordt gevalideerd (moet geldige URL zijn)
 - Preview van nieuwe profielfoto wordt getoond
-- Profielfoto wordt opgeslagen en bijgewerkt in database
+- Profielfoto URL wordt opgeslagen en bijgewerkt in database
+- Profielfoto is zichtbaar op profielpagina
 
-**Alternatief pad 10.2a: Te groot bestand**
-- Testdata: Afbeelding van 10MB
-- Gewenst resultaat: Error melding "Bestand is te groot"
+**Alternatief pad 10.2a: Ongeldige URL**
+- Testdata: Ongeldige URL zoals `geen-url`
+- Gewenst resultaat: Error melding "Ongeldige URL"
 
-**Alternatief pad 10.2b: Ongeldig bestandstype**
-- Testdata: PDF bestand
-- Gewenst resultaat: Error melding "Alleen JPG, PNG, GIF, WebP zijn toegestaan"
+**Alternatief pad 10.2b: URL die geen afbeelding is**
+- Testdata: URL naar een HTML pagina
+- Gewenst resultaat: Error melding "URL moet naar een afbeelding verwijzen" of afbeelding wordt niet getoond
 
 ---
 
@@ -126,22 +111,12 @@
    - Success melding wordt getoond
    - Wijziging wordt opgeslagen in database
    - Gebruikersnaam is zichtbaar op profielpagina
-   - URL naar profielpagina wordt bijgewerkt (indien van toepassing)
+   - URL naar profielpagina wordt bijgewerkt
 
 **Gewenst resultaat:**
 - Gebruiker kan zijn gebruikersnaam wijzigen
-- Gebruikersnaam wordt gevalideerd (uniek, min/max lengte)
-- Duplicate gebruikersnamen worden voorkomen
 - Wijziging wordt opgeslagen in database
 - Success melding wordt getoond na wijziging
-
-**Alternatief pad 10.3a: Duplicate gebruikersnaam**
-- Testdata: Gebruikersnaam die al bestaat
-- Gewenst resultaat: Error melding "Deze gebruikersnaam is al in gebruik"
-
-**Alternatief pad 10.3b: Te korte gebruikersnaam**
-- Testdata: Gebruikersnaam met 2 karakters
-- Gewenst resultaat: Error melding "Gebruikersnaam moet minimaal X karakters bevatten"
 
 ---
 
@@ -204,65 +179,32 @@
 3. Klik op "Account verwijderen" knop
 4. Controleer bevestigingsdialoog:
    - Dialoog wordt getoond met waarschuwing
-   - Gebruiker moet wachtwoord invoeren voor bevestiging
-5. Vul wachtwoord in voor bevestiging
+   - Gebruiker moet DELETE invoeren voor bevestiging
+5. Vul DELETE in voor bevestiging
 6. Klik op "Bevestigen verwijderen" knop
 7. Wacht op response
 8. Controleer dat account wordt verwijderd:
    - Success melding wordt getoond
    - Gebruiker wordt uitgelogd
-   - Gebruiker wordt doorgestuurd naar home pagina
    - Account en gerelateerde data worden verwijderd uit database
 
 **Gewenst resultaat:**
 - Gebruiker kan zijn account verwijderen
 - Bevestigingsdialoog wordt getoond voordat verwijderen
-- Gebruiker moet wachtwoord invoeren voor bevestiging
+- Gebruiker moet DELETE invoeren voor bevestiging
 - Account en gerelateerde data worden verwijderd uit database
-- Gebruiker wordt uitgelogd en doorgestuurd naar home pagina
 
 **Alternatief pad 10.5a: Annuleren verwijderen**
 - Testdata: Klik op "Annuleren" in bevestigingsdialoog
 - Gewenst resultaat: Dialoog sluit, account wordt niet verwijderd
 
-**Alternatief pad 10.5b: Verkeerd wachtwoord bij verwijderen**
-- Testdata: Verkeerd wachtwoord ingevoerd
+**Alternatief pad 10.5b: Niet DELETE ingevoerd**
+- Testdata: Niet DELETE ingevoerd
 - Gewenst resultaat: Error melding, account wordt niet verwijderd
 
 ---
 
-### Scenario 10.6: Validatie en security
-
-**Testdata voor verschillende validatiefouten:**
-
-**Test 10.6a: Alleen ingelogde gebruikers**
-- Stappen: Probeer settings pagina te openen zonder ingelogd te zijn
-- Gewenst resultaat: Redirect naar login pagina
-
-**Test 10.6b: CSRF protection**
-- Stappen: Probeer formulier te submitten zonder geldige token
-- Gewenst resultaat: Error melding, wijziging wordt niet opgeslagen
-
-**Test 10.6c: XSS protection**
-- Testdata: Probeer script tags in te voeren in tekstvelden
-- Gewenst resultaat: Script tags worden gefilterd of ge-escaped
-
-**Gewenst resultaat:**
-- Validatie is correct geïmplementeerd voor alle velden
-- Security best practices zijn gevolgd
-- Alleen ingelogde gebruikers kunnen settings bewerken
-- CSRF protection is geïmplementeerd
-- XSS protection is geïmplementeerd
-
----
-
 ## Testrapport
-
-### Testuitvoering
-**Datum:** [Vul datum in]  
-**Tester:** [Vul naam in]  
-**Applicatie versie:** [Vul versie in]  
-**Browser:** [Vul browser in]
 
 ### Resultaten per Scenario
 
@@ -291,23 +233,12 @@
 - **Opmerkingen:** 
   - [Vul opmerkingen in]
 
-#### Scenario 10.6: Validatie en security
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-- **Opmerkingen:** 
-  - [Vul opmerkingen in]
-
 ### Alternatieve Paden
 
-#### Alternatief pad 10.2a: Te groot bestand
+#### Alternatief pad 10.2a: Ongeldige URL
 - **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
-#### Alternatief pad 10.2b: Ongeldig bestandstype
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-
-#### Alternatief pad 10.3a: Duplicate gebruikersnaam
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-
-#### Alternatief pad 10.3b: Te korte gebruikersnaam
+#### Alternatief pad 10.2b: URL die geen afbeelding is
 - **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 10.4a: Verkeerd huidig wachtwoord
@@ -322,7 +253,7 @@
 #### Alternatief pad 10.5a: Annuleren verwijderen
 - **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
-#### Alternatief pad 10.5b: Verkeerd wachtwoord bij verwijderen
+#### Alternatief pad 10.5b: Niet DELETE ingevoerd
 - **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 ### Conclusie
@@ -347,7 +278,7 @@
 **Kritieke issues:**
 - [Lijst met kritieke problemen]
 
-**Totaal aantal tests:** 6 scenario's + 9 alternatieve paden = 15 tests  
+**Totaal aantal tests:** 5 scenario's + 7 alternatieve paden = 12 tests  
 **Geslaagd:** [Aantal]  
 **Gefaald:** [Aantal]  
 **Niet uitgevoerd:** [Aantal]  

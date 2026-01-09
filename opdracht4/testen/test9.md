@@ -31,10 +31,6 @@
    - Gebruiker kan zijn eigen reacties bewerken en verwijderen
    - Gerelateerd aan Task #53
 
-7. **Scenario 9.7: Alleen ingelogde gebruikers kunnen liken en reageren**
-   - Niet-ingelogde gebruikers kunnen niet liken of reageren
-   - Gerelateerd aan Task #52 en #53
-
 ### Samenhang met andere User Stories
 - **US-1**: Gebruiker moet ingelogd zijn om te liken en reageren
 - **US-8**: Like en reactie functionaliteit moet aanwezig zijn op project detailpagina
@@ -55,7 +51,7 @@
 2. Zoek like knop op de pagina:
    - Like knop is zichtbaar (hart icon)
    - Like knop toont lege hart (nog niet geliked)
-   - Aantal likes wordt getoond (indien aanwezig)
+   - Aantal likes wordt getoond
 3. Noteer huidig aantal likes
 4. Klik op like knop
 5. Wacht op response
@@ -78,7 +74,7 @@
 
 **Alternatief pad 9.1a: Eigen project liken**
 - Testdata: Probeer eigen project te liken
-- Gewenst resultaat: Like werkt (indien toegestaan) OF like knop is verborgen
+- Gewenst resultaat: like knop is verborgen
 
 **Alternatief pad 9.1b: Meerdere projecten liken**
 - Testdata: Like 5 verschillende projecten
@@ -129,7 +125,7 @@
 3. Test real-time updates:
    - Open project in twee verschillende browsers/tabs
    - Like project in eerste browser
-   - Controleer dat aantal wordt bijgewerkt in tweede browser (indien real-time geïmplementeerd)
+   - Controleer dat aantal wordt bijgewerkt in tweede browser
    - OF refresh tweede browser en controleer bijgewerkt aantal
 4. Test met 0 likes:
    - Navigeer naar project zonder likes
@@ -137,13 +133,9 @@
 
 **Gewenst resultaat:**
 - Aantal likes wordt getoond en bijgewerkt
-- Real-time updates werken (indien geïmplementeerd)
+- Real-time updates werken
 - Aantal is altijd correct
 - 0 likes wordt correct weergegeven
-
-**Alternatief pad 9.3a: Geen real-time updates**
-- Testdata: Real-time functionaliteit niet geïmplementeerd
-- Gewenst resultaat: Aantal wordt bijgewerkt na refresh
 
 ---
 
@@ -163,7 +155,7 @@
    - Textarea of input veld is aanwezig
    - Submit knop is aanwezig
 3. Type reactie tekst: `Dit is een test reactie op het project.`
-4. Klik op submit knop (bijv. "Plaats reactie")
+4. Klik op submit knop
 5. Wacht op response
 6. Controleer dat reactie wordt geplaatst:
    - Reactie verschijnt in reacties lijst
@@ -184,10 +176,6 @@
 **Alternatief pad 9.4a: Lege reactie**
 - Testdata: Probeer lege reactie te plaatsen
 - Gewenst resultaat: Validatie error wordt getoond
-
-**Alternatief pad 9.4b: Te lange reactie**
-- Testdata: Reactie met 1000+ karakters
-- Gewenst resultaat: Validatie error of max lengte wordt gehandhaafd
 
 ---
 
@@ -223,7 +211,7 @@
 
 **Alternatief pad 9.5a: Geen reacties**
 - Testdata: Project zonder reacties
-- Gewenst resultaat: Bericht wordt getoond: "Nog geen reacties" of reacties sectie wordt niet getoond
+- Gewenst resultaat: Bericht wordt getoond: "Nog geen reacties"
 
 ---
 
@@ -276,146 +264,60 @@
 
 ---
 
-### Scenario 9.7: Alleen ingelogde gebruikers kunnen liken en reageren
-
-**Voorbereiding:**
-- Twee scenario's: ingelogd en niet-ingelogd
-
-**Stappen voor ingelogde gebruiker:**
-1. Log in als gebruiker
-2. Navigeer naar project detailpagina
-3. Controleer dat like knop zichtbaar is
-4. Controleer dat reactie formulier zichtbaar is
-5. Test beide functionaliteiten (werken correct)
-
-**Stappen voor niet-ingelogde gebruiker:**
-1. Log uit
-2. Navigeer naar project detailpagina
-3. Controleer like knop:
-   - Like knop is NIET zichtbaar
-   - OF like knop is zichtbaar maar disabled
-   - OF klikken op like knop toont login prompt
-4. Controleer reactie formulier:
-   - Reactie formulier is NIET zichtbaar
-   - OF reactie formulier is zichtbaar maar disabled
-   - OF klikken op formulier toont login prompt
-5. Controleer dat bestaande likes en reacties wel zichtbaar zijn:
-   - Aantal likes wordt getoond (alleen lezen)
-   - Reacties worden getoond (alleen lezen)
-
-**Gewenst resultaat:**
-- Ingelogde gebruikers kunnen liken en reageren
-- Niet-ingelogde gebruikers kunnen niet liken of reageren
-- Like knop en reactie formulier zijn verborgen of disabled voor niet-ingelogde gebruikers
-- Bestaande likes en reacties zijn wel zichtbaar (alleen lezen)
-- Duidelijke feedback wordt gegeven (login prompt indien nodig)
-
-**Alternatief pad 9.7a: Login prompt bij liken**
-- Testdata: Niet-ingelogde gebruiker klikt op like knop
-- Gewenst resultaat: Login prompt of redirect naar login pagina
-
----
-
 ## Testrapport
-
-### Testuitvoering
-**Datum:** [Vul datum in]  
-**Tester:** [Vul naam in]  
-**Applicatie versie:** [Vul versie in]  
-**Browser:** [Vul browser in]  
-**Aantal projecten getest:** [Aantal]
 
 ### Resultaten per Scenario
 
 #### Scenario 9.1: Project liken
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
   - [Vul opmerkingen in]
 
 #### Scenario 9.2: Like verwijderen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
   - [Vul opmerkingen in]
 
 #### Scenario 9.3: Like count weergeven
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Real-time updates:** ☐ Ja ☐ Nee
 - **Opmerkingen:** 
   - [Vul opmerkingen in]
 
 #### Scenario 9.4: Reactie plaatsen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
   - [Vul opmerkingen in]
 
 #### Scenario 9.5: Reacties weergeven
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Aantal reacties getoond:** [Aantal]
 - **Opmerkingen:** 
   - [Vul opmerkingen in]
 
 #### Scenario 9.6: Eigen reactie bewerken en verwijderen
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-- **Opmerkingen:** 
-  - [Vul opmerkingen in]
-
-#### Scenario 9.7: Alleen ingelogde gebruikers
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 - **Opmerkingen:** 
   - [Vul opmerkingen in]
 
 ### Alternatieve Paden
 
 #### Alternatief pad 9.1a: Eigen project liken
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 9.1b: Meerdere projecten liken
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-
-#### Alternatief pad 9.3a: Geen real-time updates
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 9.4a: Lege reactie
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-
-#### Alternatief pad 9.4b: Te lange reactie
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 9.5a: Geen reacties
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
+- **Status:** ☑ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 #### Alternatief pad 9.6a: Andere gebruiker reactie
-- **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
-
-#### Alternatief pad 9.7a: Login prompt
 - **Status:** ☐ Geslaagd ☐ Gefaald ☐ Niet uitgevoerd
 
 ### Conclusie
 
 **Algemene bevindingen:**
 - [Beschrijf algemene bevindingen over like en reactie functionaliteit]
-
-**Samenhang met andere User Stories:**
-- **US-1 (Authenticatie)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe authenticatie werkt met liken en reageren]
-- **US-8 (Project Detail)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe like en reactie functionaliteit werkt op project detailpagina]
-- **US-2 (Projecten)**: ☐ Werkt correct ☐ Werkt niet
-  - [Beschrijf hoe likes en reacties gekoppeld zijn aan projecten]
-
-**Performance:**
-- **Response tijd bij liken:** [Tijd] ms
-- **Response tijd bij reactie plaatsen:** [Tijd] ms
-- **Database queries geoptimaliseerd:** ☐ Ja ☐ Nee
-
-**Aanbevelingen:**
-- [Lijst met aanbevelingen]
-
-**Kritieke issues:**
-- [Lijst met kritieke problemen]
-
-**Totaal aantal tests:** 7 scenario's + 8 alternatieve paden = 15 tests  
-**Geslaagd:** [Aantal]  
-**Gefaald:** [Aantal]  
-**Niet uitgevoerd:** [Aantal]  
-**Succespercentage:** [Percentage]%
